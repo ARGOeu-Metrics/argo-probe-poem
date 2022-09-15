@@ -11,7 +11,6 @@ def get_ver():
             if "Version:" in line:
                 return line.split()[1]
     except IOError:
-        print "Make sure that %s is in directory"  % (NAME+'.spec')
         sys.exit(1)
 
 
