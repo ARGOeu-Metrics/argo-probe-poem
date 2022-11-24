@@ -113,7 +113,7 @@ class ArgoProbePoemCert(unittest.TestCase):
 
         self.assertEqual(e.exception.code, 2)
 
-    @patch("argo_probe_poem.poem_cert.client_cert_request")
+    @patch("argo_probe_poem.poem_cert.client_cert_requests_get")
     @patch("argo_probe_poem.poem_cert.requests.get")
     def test_raise_clientcert_requestexception(self, mock_requests_get, mock_client_cert_request):
         mock_requests_get.side_effect = pass_web_api
@@ -124,7 +124,7 @@ class ArgoProbePoemCert(unittest.TestCase):
 
         self.assertEqual(e.exception.code, 2)
 
-    @patch("argo_probe_poem.poem_cert.client_cert_request")
+    @patch("argo_probe_poem.poem_cert.client_cert_requests_get")
     @patch("argo_probe_poem.poem_cert.requests.get")
     def test_raise_clientcert_exception(self, mock_requests_get, mock_client_cert_request):
         mock_requests_get.side_effect = pass_web_api
