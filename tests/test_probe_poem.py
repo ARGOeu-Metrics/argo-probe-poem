@@ -307,6 +307,7 @@ class ArgoProbePoemMetrical(unittest.TestCase):
     @patch("argo_probe_poem.poem_cert.requests.get")
     def test_raise_main_exception(self, mock_requests_get, mock_requests_resp):
         mock_requests_get.return_value = mock_requests_resp
+        mock_requests_resp.json.side_effect = Exception
 
         with self.assertRaises(SystemExit) as e:
             utils_metric(self.arguments)
