@@ -51,7 +51,6 @@ mock_tenants = [
 
 
 class ArgoProbePoemCert(unittest.TestCase):
-
     def setUp(self) -> None:
         arguments = {"hostname": "mock_hostname", "timeout": 60,
                      "cert": "mock_cert", "key": "mock_key", "capath": "mock_capath"}
@@ -211,7 +210,6 @@ class ArgoProbePoemCert(unittest.TestCase):
 
 
 class ArgoProbePoemMetrical(unittest.TestCase):
-
     def setUp(self) -> None:
         arguments = {"hostname": "mock_hostname",
                      "timeout": 60, "mandatory_metrics": "mock_metrics"}
@@ -276,7 +274,7 @@ class ArgoProbePoemMetrical(unittest.TestCase):
     @patch("argo_probe_poem.poem_metricapi.requests.get")
     def test_raise_mandatory_metrics_exception(self, mock_requests, mock_find_missing_metrics):
         mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.side_effect = False
+        mock_find_missing_metrics.return_value = ['missing_metric1', 'missing_metric2']
 
         with self.assertRaises(SystemExit) as e:
             utils_metric(self.arguments)
@@ -305,9 +303,10 @@ class ArgoProbePoemMetrical(unittest.TestCase):
 
         self.assertEqual(e.exception.code, 2)
 
+    @patch("argo_probe_poem.poem_cert.requests.Response")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_main_exception(self, mock_requests_get):
-        mock_requests_get.return_value = False
+    def test_raise_main_exception(self, mock_requests_get, mock_requests_resp):
+        mock_requests_get.return_value = mock_requests_resp
 
         with self.assertRaises(SystemExit) as e:
             utils_metric(self.arguments)

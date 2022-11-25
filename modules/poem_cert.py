@@ -118,7 +118,6 @@ def client_cert_requests_get(tenant, arguments):
 
 
 def utils_func(arguments):
-
     nagios_response = NagiosResponse("All certificates are valid!")
 
     try:
