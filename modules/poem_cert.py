@@ -154,7 +154,7 @@ def utils_func(arguments):
                 if not check_CN_matches_FQDN(alt_names_list, tenant['domain_url']):
                     nagios_response.setCode(NagiosResponse.CRITICAL)
                     nagios_response.writeCriticalMessage(
-                        'Server certificate CN does not match %s' % tenant['domain_url'])
+                        'Customer: ' + tenant['name'] +  ' - Server certificate CN does not match %s' % tenant['domain_url'])
                     continue
 
                 # Check certificate expire date
