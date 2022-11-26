@@ -148,6 +148,24 @@ def utils_func(arguments):
                 server_subject_alt_names, server_expire, bool = verify_servercert(
                     tenant['domain_url'], arguments.timeout, arguments.capath, tls_protocol)
 
+                # Check if certificate CN matches host name
+                alt_names_list = alt_names_string_to_list(server_subject_alt_names)
+
+                if not check_CN_matches_FQDN(alt_names_list, tenant['domain_url']):
+                    nagios_response.setCode(NagiosResponse.CRITICAL)
+                    nagios_response.writeCriticalMessage(
+                        'Server certificate CN does not match %s' % tenant['domain_url'])
+                    continue
+
+                # Check certificate expire date
+                dte = datetime.datetime.strptime(
+                    server_expire.decode('utf-8'), '%Y%m%d%H%M%SZ')
+                dtn = datetime.datetime.now()
+                if (dte - dtn).days <= 15:
+                    nagios_response.setCode(NagiosResponse.WARNING)
+                    nagios_response.writeWarningMessage(
+                        'Customer: ' + tenant['name'] + ' - Server certificate will expire in %i days' % (dte - dtn).days)
+
             except PyOpenSSLError as e:
                 nagios_response.setCode(NagiosResponse.CRITICAL)
                 nagios_response.writeCriticalMessage(
@@ -165,22 +183,6 @@ def utils_func(arguments):
                 nagios_response.writeCriticalMessage(
                         'CRITICAL - %s' % (errmsg_from_excp(e)))
 
-            # Check if certificate CN matches host name
-            alt_names_list = alt_names_string_to_list(server_subject_alt_names)
-
-            if not check_CN_matches_FQDN(alt_names_list, tenant['domain_url']):
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage(
-                    'Server certificate CN does not match %s' % tenant['domain_url'])
-
-            # Check certificate expire date
-            dte = datetime.datetime.strptime(
-                server_expire.decode('utf-8'), '%Y%m%d%H%M%SZ')
-            dtn = datetime.datetime.now()
-            if (dte - dtn).days <= 15:
-                nagios_response.setCode(NagiosResponse.WARNING)
-                nagios_response.writeWarningMessage(
-                    'Customer: ' + tenant['name'] + ' - Server certificate will expire in %i days' % (dte - dtn).days)
 
     except requests.exceptions.RequestException as e:
         nagios_response.setCode(NagiosResponse.CRITICAL)
