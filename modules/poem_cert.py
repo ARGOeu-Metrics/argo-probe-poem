@@ -134,12 +134,13 @@ def utils_func(arguments):
                 nagios_response.setCode(NagiosResponse.CRITICAL)
                 nagios_response.writeCriticalMessage(
                     'Customer: ' + tenant['name'] + ' - Client certificate verification failed: %s' % errmsg_from_excp(e))
+                print(nagios_response.getMsg())
                 raise SystemExit(nagios_response.getCode())
 
             except Exception as e:
                 nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage(
-                    'CRITICAL - %s' % (errmsg_from_excp(e)))
+                nagios_response.writeCriticalMessage(errmsg_from_excp(e))
+                print(nagios_response.getMsg())
                 raise SystemExit(nagios_response.getCode())
 
             # verify server certificate
@@ -163,7 +164,6 @@ def utils_func(arguments):
                 nagios_response.setCode(NagiosResponse.CRITICAL)
                 nagios_response.writeCriticalMessage(
                         'CRITICAL - %s' % (errmsg_from_excp(e)))
-
 
             # Check if certificate CN matches host name
             alt_names_list = alt_names_string_to_list(server_subject_alt_names)
