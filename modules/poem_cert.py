@@ -126,42 +126,44 @@ def utils_func(arguments):
         tenants = utils.remove_name_from_json(tenants, utils.SUPERPOEM)
 
         for tenant in tenants:
-
             # verify client certificate
             try:
                 client_cert_requests_get(tenant, arguments)
-
-                # verify server certificate
-                try:
-                    server_subject_alt_names, server_expire, bool = verify_servercert(
-                        tenant['domain_url'], arguments.timeout, arguments.capath, tls_protocol)
-
-                except PyOpenSSLError as e:
-                    nagios_response.setCode(NagiosResponse.CRITICAL)
-                    nagios_response.writeCriticalMessage(
-                        'Customer: ' + tenant['name'] + ' - Server certificate verification failed: %s' % errmsg_from_excp(e))
-
-                except (socket.error, socket.timeout) as e:
-                    nagios_response.writeCriticalMessage(
-                        'Customer: ' + tenant['name'] + ' - Connection error: %s' % errmsg_from_excp(e))
-                    nagios_response.writeCriticalMessage(
-                        'Customer: ' + tenant['name'] + ' - Connection timeout after %s seconds' % arguments.timeout)
-                    nagios_response.setCode(NagiosResponse.CRITICAL)
-
-                except Exception as e:
-                    nagios_response.setCode(NagiosResponse.CRITICAL)
-                    nagios_response.writeCriticalMessage(
-                        'CRITICAL - %s' % (errmsg_from_excp(e)))
 
             except requests.exceptions.RequestException as e:
                 nagios_response.setCode(NagiosResponse.CRITICAL)
                 nagios_response.writeCriticalMessage(
                     'Customer: ' + tenant['name'] + ' - Client certificate verification failed: %s' % errmsg_from_excp(e))
+                raise SystemExit(nagios_response.getCode())
 
             except Exception as e:
                 nagios_response.setCode(NagiosResponse.CRITICAL)
                 nagios_response.writeCriticalMessage(
                     'CRITICAL - %s' % (errmsg_from_excp(e)))
+                raise SystemExit(nagios_response.getCode())
+
+            # verify server certificate
+            try:
+                server_subject_alt_names, server_expire, bool = verify_servercert(
+                    tenant['domain_url'], arguments.timeout, arguments.capath, tls_protocol)
+
+            except PyOpenSSLError as e:
+                nagios_response.setCode(NagiosResponse.CRITICAL)
+                nagios_response.writeCriticalMessage(
+                    'Customer: ' + tenant['name'] + ' - Server certificate verification failed: %s' % errmsg_from_excp(e))
+
+            except (socket.error, socket.timeout) as e:
+                nagios_response.writeCriticalMessage(
+                    'Customer: ' + tenant['name'] + ' - Connection error: %s' % errmsg_from_excp(e))
+                nagios_response.writeCriticalMessage(
+                    'Customer: ' + tenant['name'] + ' - Connection timeout after %s seconds' % arguments.timeout)
+                nagios_response.setCode(NagiosResponse.CRITICAL)
+
+            except Exception as e:
+                nagios_response.setCode(NagiosResponse.CRITICAL)
+                nagios_response.writeCriticalMessage(
+                        'CRITICAL - %s' % (errmsg_from_excp(e)))
+
 
             # Check if certificate CN matches host name
             alt_names_list = alt_names_string_to_list(server_subject_alt_names)
@@ -176,7 +178,6 @@ def utils_func(arguments):
                 server_expire.decode('utf-8'), '%Y%m%d%H%M%SZ')
             dtn = datetime.datetime.now()
             if (dte - dtn).days <= 15:
-
                 nagios_response.setCode(NagiosResponse.WARNING)
                 nagios_response.writeWarningMessage(
                     'Customer: ' + tenant['name'] + ' - Server certificate will expire in %i days' % (dte - dtn).days)
