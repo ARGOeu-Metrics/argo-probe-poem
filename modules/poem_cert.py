@@ -171,9 +171,12 @@ def utils_func(arguments):
                 nagios_response.writeCriticalMessage(
                     'Customer: ' + tenant['name'] + ' - Server certificate verification failed: %s' % errmsg_from_excp(e))
 
-            except (socket.error, socket.timeout) as e:
+            except socket.error as e:
                 nagios_response.writeCriticalMessage(
                     'Customer: ' + tenant['name'] + ' - Connection error: %s' % errmsg_from_excp(e))
+                nagios_response.setCode(NagiosResponse.CRITICAL)
+
+            except socket.timeout as e:
                 nagios_response.writeCriticalMessage(
                     'Customer: ' + tenant['name'] + ' - Connection timeout after %s seconds' % arguments.timeout)
                 nagios_response.setCode(NagiosResponse.CRITICAL)
