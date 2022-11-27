@@ -70,7 +70,7 @@ def main():
     arguments = parser.parse_args()
 
     utils_metric(arguments)
-    
+
 
 if __name__ == "__main__":
     main()
