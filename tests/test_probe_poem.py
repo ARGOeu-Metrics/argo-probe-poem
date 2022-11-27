@@ -188,7 +188,9 @@ class ArgoProbePoemCert(unittest.TestCase):
     @patch("argo_probe_poem.poem_cert.requests.get")
     def test_raise_server_certificate_exception(self, mock_requests, mock_servercert):
         mock_requests.side_effect = pass_web_api
-        mock_servercert.return_value = "foo_alt_names"
+        mock_servercert.side_effect = [
+            PyOpenSSLError('mocked PyOpenSSLError 1'),
+            PyOpenSSLError('mocked PyOpenSSLError 2')]
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
