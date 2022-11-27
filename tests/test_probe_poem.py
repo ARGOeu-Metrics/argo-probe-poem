@@ -92,9 +92,28 @@ class ArgoProbePoemCert(unittest.TestCase):
             'WARNING - Customer: mock_name_1 - Server certificate will expire in 2 days / Customer: mock_name_2 - Server certificate will expire in 2 days')
         self.assertEqual(e.exception.code, 1)
 
+    @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_socketerror(self, mock_requests):
+    def test_raise_socketerror(self, mock_requests, mock_verify_servcert):
         mock_requests.side_effect = pass_web_api
+        mock_verify_servcert.side_effect = [
+            socket.error('mocked socket error 1'),
+            socket.error('mocked socket error 2')
+        ]
+
+        with self.assertRaises(SystemExit) as e:
+            utils_func(self.arguments)
+
+        self.assertEqual(e.exception.code, 2)
+
+    @patch("argo_probe_poem.poem_cert.verify_servercert")
+    @patch("argo_probe_poem.poem_cert.requests.get")
+    def test_raise_sockettimeout(self, mock_requests, mock_verify_servcert):
+        mock_requests.side_effect = pass_web_api
+        mock_verify_servcert.side_effect = [
+            socket.timeout('mocked socket timeout 1'),
+            socket.timeout('mocked socket timeout 2')
+        ]
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
