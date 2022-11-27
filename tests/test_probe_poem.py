@@ -142,7 +142,7 @@ class ArgoProbePoemCert(unittest.TestCase):
         # first server failed
         mock_servercert.side_effect = [
             PyOpenSSLError('mocked PyOpenSSLError'),
-            ('DNS:mock.domain.2', '20221127235959Z'.encode('utf-8'), True)
+            ('DNS:mock.domain.2', '20221127235959Z'.encode('utf-8'), False)
         ]
 
         with self.assertRaises(SystemExit) as e:
@@ -193,7 +193,7 @@ class ArgoProbePoemCert(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_cert.requests.get")
     def test_raise_main_exception(self, mock_requests):
-        mock_requests.side_effect = False
+        mock_requests.side_effect = requests.exceptions.RequestException
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
