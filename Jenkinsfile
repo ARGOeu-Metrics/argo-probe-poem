@@ -29,7 +29,7 @@ pipeline {
                     coverage xml --omit=*usr* --omit=*.tox*
                 '''
                 cobertura coberturaReportFile: '**/coverage.xml'
-                junit 'junit.xml'
+                junit '**/junit.xml'
             }
         }
         stage ('Build Centos 7 RPM') {
