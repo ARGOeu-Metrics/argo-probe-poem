@@ -187,9 +187,21 @@ class AnalyseProbeCandidates:
                 else:
                     msg = f"{msg}\n{joined_msgs}"
 
+        if status == 0:
+            msg_prefix = "OK"
+
+        elif status == 1:
+            msg_prefix = "WARNING"
+
+        elif status == 2:
+            msg_prefix = "CRITICAL"
+
+        else:
+            msg_prefix = "UNKNOWN"
+
         return {
             "status": status,
-            "message": msg
+            "message": f"{msg_prefix} - {msg}"
         }
 
 

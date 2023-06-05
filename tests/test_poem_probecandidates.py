@@ -228,7 +228,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "New submitted probe: 'test-probe1'"
+                "message": "CRITICAL - New submitted probe: 'test-probe1'"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -259,7 +259,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 0,
-                "message": "No action required"
+                "message": "OK - No action required"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -290,7 +290,8 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 1,
-                "message": "Probe 'test-probe3' has status 'testing' for 2 days"
+                "message": "WARNING - Probe 'test-probe3' has status 'testing' "
+                           "for 2 days"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -323,7 +324,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 0,
-                "message": "No action required"
+                "message": "OK - No action required"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -356,8 +357,8 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 1,
-                "message":
-                    "Probe 'test-probe5' has status 'processing' for 1 day"
+                "message": "WARNING - Probe 'test-probe5' has status "
+                           "'processing' for 1 day"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -388,7 +389,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 0,
-                "message": "No action required"
+                "message": "OK - No action required"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -421,7 +422,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "New submitted probe: 'test-probe10'\n"
+                "message": "CRITICAL - New submitted probe: 'test-probe10'\n"
                            "Probe 'test-probe9' has status 'testing' for 3 days"
             }
         )
@@ -453,7 +454,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "Actions required for tenant: TENANT1\n"
+                "message": "CRITICAL - Actions required for tenant: TENANT1\n"
                            "TENANT1: New submitted probe: 'test-probe1'"
             }
         )
@@ -492,7 +493,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "Actions required for tenant: TENANT2\n"
+                "message": "CRITICAL - Actions required for tenant: TENANT2\n"
                            "TENANT2: New submitted probe: 'test-probe1'"
             }
         )
@@ -531,7 +532,8 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "Actions required for tenants: TENANT1, TENANT2\n"
+                "message": "CRITICAL - Actions required for tenants: TENANT1, "
+                           "TENANT2\n"
                            "TENANT2: New submitted probe: 'test-probe1'\n"
                            "TENANT1: Probe 'test-probe5' has status "
                            "'processing' for 2 days"
@@ -572,7 +574,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "Actions required for tenant: TENANT2\n"
+                "message": "CRITICAL - Actions required for tenant: TENANT2\n"
                            "TENANT2: New submitted probe: 'test-probe1'"
             }
         )
@@ -611,7 +613,8 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "Actions required for tenants: TENANT1, TENANT2\n"
+                "message": "CRITICAL - Actions required for tenants: TENANT1, "
+                           "TENANT2\n"
                            "TENANT2: New submitted probe: 'test-probe1'\n"
                            "TENANT1: Probe 'test-probe3' has status "
                            "'testing' for 2 days"
@@ -652,7 +655,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "Actions required for tenant: TENANT1\n"
+                "message": "CRITICAL - Actions required for tenant: TENANT1\n"
                            "TENANT1: New submitted probe: 'test-probe10'\n"
                            "TENANT1: Probe 'test-probe9' has status 'testing' "
                            "for 4 days"
