@@ -96,33 +96,96 @@ class AnalyseProbeCandidates:
         data = self._fetch_data()
 
         msg = "No action required"
+        warning_msg = []
+        critical_msg = []
+        tenants_handle = set()
         status = 0
+        multi_tenant = len(data) > 1
         for tenant, candidates in data.items():
             for candidate in candidates:
                 time_difference = now - datetime.datetime.strptime(
                     candidate["last_update"], "%Y-%m-%d %H:%M:%S"
                 )
-                if time_difference.days == 1:
+
+                time_difference = time_difference.days
+
+                if time_difference == 1:
                     plural = ""
 
                 else:
                     plural = "s"
 
+                if multi_tenant:
+                    prefix = f"{tenant}: "
+
+                else:
+                    prefix = ""
+
                 if candidate["status"] == "submitted":
-                    msg = f"New submitted probe: {candidate['name']}"
                     status = 2
+                    if multi_tenant:
+                        critical_msg.append(
+                            f"{prefix}New submitted probe: "
+                            f"'{candidate['name']}'"
+                        )
+                        tenants_handle.add(tenant)
+
+                    else:
+                        msg = f"New submitted probe: '{candidate['name']}'"
 
                 if candidate["status"] == "testing" and \
-                        time_difference.days >= self.warning_testing:
-                    msg = f"Probe '{candidate['name']}' has status 'testing' " \
-                          f"for {time_difference.days} day{plural}"
-                    status = 1
+                        time_difference >= self.warning_testing:
+                    if status == 0:
+                        status = 1
+
+                    warning_msg.append(
+                        f"{prefix}Probe '{candidate['name']}' has status "
+                        f"'testing' for {time_difference} day{plural}"
+                    )
+
+                    if multi_tenant:
+                        tenants_handle.add(tenant)
 
                 if candidate["status"] == "processing" \
-                        and time_difference.days >= self.warning_processing:
-                    msg = f"Probe '{candidate['name']}' has status " \
-                          f"'processing' for {time_difference.days} day{plural}"
-                    status = 1
+                        and time_difference >= self.warning_processing:
+                    if status == 0:
+                        status = 1
+
+                    warning_msg.append(
+                        f"{prefix}Probe '{candidate['name']}' has status "
+                        f"'processing' for {time_difference} day{plural}"
+                    )
+
+                    if multi_tenant:
+                        tenants_handle.add(tenant)
+
+        if multi_tenant:
+            if tenants_handle:
+                ext = ""
+                if len(tenants_handle) > 1:
+                    ext = "s"
+                msg = f"Actions required for tenant{ext}: " \
+                      f"{', '.join(sorted(list(tenants_handle)))}"
+
+            if critical_msg:
+                joined_msgs = "\n".join(critical_msg)
+                msg = f"{msg}\n{joined_msgs}"
+
+            if warning_msg:
+                joined_msgs = "\n".join(warning_msg)
+                msg = f"{msg}\n{joined_msgs}"
+
+        else:
+            if critical_msg:
+                msg = "\n".join(critical_msg)
+
+            if warning_msg:
+                joined_msgs = "\n".join(warning_msg)
+                if status == 1:
+                    msg = joined_msgs
+
+                else:
+                    msg = f"{msg}\n{joined_msgs}"
 
         return {
             "status": status,

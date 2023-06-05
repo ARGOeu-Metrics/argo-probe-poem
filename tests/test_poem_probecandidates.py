@@ -97,6 +97,21 @@ mock_candidates5 = [
     }
 ]
 
+mock_candidates6 = [
+    {
+        "name": "test-probe9",
+        "status": "testing",
+        "created": "2023-05-22 08:34:35",
+        "last_update": "2023-06-01 09:35:46"
+    },
+    {
+        "name": "test-probe10",
+        "status": "submitted",
+        "created": "2023-06-01 09:35:46",
+        "last_update": "2023-06-01 09:35:46"
+    }
+]
+
 
 class MockResponse:
     def __init__(self, data, status_code):
@@ -145,6 +160,58 @@ def mock_response4(*args, **kwargs):
         return MockResponse(data=mock_candidates1, status_code=200)
 
 
+def mock_response5(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
+        return MockResponse(data=mock_candidates2, status_code=200)
+
+    else:
+        return MockResponse(data=mock_candidates5, status_code=200)
+
+
+def mock_response6(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
+        return MockResponse(data=mock_candidates4, status_code=200)
+
+    else:
+        return MockResponse(data=mock_candidates2, status_code=200)
+
+
+def mock_response7(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
+        return MockResponse(data=mock_candidates3, status_code=200)
+
+    else:
+        return MockResponse(data=mock_candidates2, status_code=200)
+
+
+def mock_response8(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    else:
+        return MockResponse(data=mock_candidates6, status_code=200)
+
+
+def mock_response9(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
+        return MockResponse(data=mock_candidates6, status_code=200)
+
+    else:
+        return MockResponse(data=mock_candidates1, status_code=200)
+
+
 class AnalyseProbeCandidatesTests(unittest.TestCase):
     @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
     @mock.patch("requests.get")
@@ -161,7 +228,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(
             analysis.get_status(), {
                 "status": 2,
-                "message": "New submitted probe: test-probe1"
+                "message": "New submitted probe: 'test-probe1'"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -337,3 +404,274 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
             )
         ], any_order=True)
 
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_single_tenant_multiple_statuses(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 4, 12, 0, 13)
+        mock_get.side_effect = mock_response8
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "New submitted probe: 'test-probe10'\n"
+                           "Probe 'test-probe9' has status 'testing' for 3 days"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 2)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_submitted(self, mock_get, mock_now):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response5
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "Actions required for tenant: TENANT1\n"
+                           "TENANT1: New submitted probe: 'test-probe1'"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_submitted_processing_no_warn(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 3, 12, 0, 13)
+        mock_get.side_effect = mock_response6
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "Actions required for tenant: TENANT2\n"
+                           "TENANT2: New submitted probe: 'test-probe1'"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_submitted_processing_with_warn_msg(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response6
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "Actions required for tenants: TENANT1, TENANT2\n"
+                           "TENANT2: New submitted probe: 'test-probe1'\n"
+                           "TENANT1: Probe 'test-probe5' has status "
+                           "'processing' for 2 days"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_submitted_testing_no_warn(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 3, 12, 0, 13)
+        mock_get.side_effect = mock_response7
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "Actions required for tenant: TENANT2\n"
+                           "TENANT2: New submitted probe: 'test-probe1'"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_submitted_testing_with_warn_msg(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response7
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "Actions required for tenants: TENANT1, TENANT2\n"
+                           "TENANT2: New submitted probe: 'test-probe1'\n"
+                           "TENANT1: Probe 'test-probe3' has status "
+                           "'testing' for 2 days"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_multiple_statuses(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response9
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 2,
+                "message": "Actions required for tenant: TENANT1\n"
+                           "TENANT1: New submitted probe: 'test-probe10'\n"
+                           "TENANT1: Probe 'test-probe9' has status 'testing' "
+                           "for 4 days"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
