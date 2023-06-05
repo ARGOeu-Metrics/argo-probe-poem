@@ -74,7 +74,7 @@ class AnalyseProbeCandidates:
                 requests.exceptions.RequestException
         ) as e:
             raise RequestException(
-                f"{tenant.name}: Error fetching probe candidates: {str(e)}"
+                f"{tenant['name']}: Error fetching probe candidates: {str(e)}"
             )
 
     def _fetch_data(self):
@@ -85,124 +85,154 @@ class AnalyseProbeCandidates:
         for tenant in tenants:
             if tenant["name"] != utils.SUPERPOEM and \
                     tenant["name"] in self.tokens.keys():
-                data.update({
-                    tenant["name"]: self._fetch_probe_candidates(tenant)
-                })
+                try:
+                    data.update({
+                        tenant["name"]: {
+                            "data": self._fetch_probe_candidates(tenant)
+                        }
+                    })
+
+                except RequestException as e:
+                    data.update({
+                        tenant["name"]: {
+                            "exception": str(e)
+                        }
+                    })
 
         return data
 
     def get_status(self):
         now = get_now()
-        data = self._fetch_data()
 
-        msg = "No action required"
-        warning_msg = []
-        critical_msg = []
-        tenants_handle = set()
-        status = 0
-        multi_tenant = len(data) > 1
-        for tenant, candidates in data.items():
-            for candidate in candidates:
-                time_difference = now - datetime.datetime.strptime(
-                    candidate["last_update"], "%Y-%m-%d %H:%M:%S"
-                )
+        try:
+            data = self._fetch_data()
 
-                time_difference = time_difference.days
+        except RequestException as e:
+            return {
+                "status": 2,
+                "message": f"CRITICAL - {str(e)}"
+            }
 
-                if time_difference == 1:
-                    plural = ""
-
-                else:
-                    plural = "s"
-
+        else:
+            msg = "No action required"
+            warning_msg = []
+            critical_msg = []
+            tenants_handle = set()
+            status = 0
+            multi_tenant = len(data) > 1
+            for tenant, candidates in data.items():
                 if multi_tenant:
                     prefix = f"{tenant}: "
 
                 else:
                     prefix = ""
 
-                if candidate["status"] == "submitted":
-                    status = 2
-                    if multi_tenant:
-                        critical_msg.append(
-                            f"{prefix}New submitted probe: "
-                            f"'{candidate['name']}'"
+                if "data" in candidates:
+                    for candidate in candidates["data"]:
+                        time_difference = now - datetime.datetime.strptime(
+                            candidate["last_update"], "%Y-%m-%d %H:%M:%S"
                         )
-                        tenants_handle.add(tenant)
 
-                    else:
-                        msg = f"New submitted probe: '{candidate['name']}'"
+                        time_difference = time_difference.days
 
-                if candidate["status"] == "testing" and \
-                        time_difference >= self.warning_testing:
-                    if status == 0:
-                        status = 1
+                        if time_difference == 1:
+                            plural = ""
 
-                    warning_msg.append(
-                        f"{prefix}Probe '{candidate['name']}' has status "
-                        f"'testing' for {time_difference} day{plural}"
-                    )
+                        else:
+                            plural = "s"
 
-                    if multi_tenant:
-                        tenants_handle.add(tenant)
+                        if candidate["status"] == "submitted":
+                            status = 2
+                            if multi_tenant:
+                                critical_msg.append(
+                                    f"{prefix}New submitted probe: "
+                                    f"'{candidate['name']}'"
+                                )
+                                tenants_handle.add(tenant)
 
-                if candidate["status"] == "processing" \
-                        and time_difference >= self.warning_processing:
-                    if status == 0:
-                        status = 1
+                            else:
+                                msg = f"New submitted probe: " \
+                                      f"'{candidate['name']}'"
 
-                    warning_msg.append(
-                        f"{prefix}Probe '{candidate['name']}' has status "
-                        f"'processing' for {time_difference} day{plural}"
-                    )
+                        if candidate["status"] == "testing" and \
+                                time_difference >= self.warning_testing:
+                            if status == 0:
+                                status = 1
 
-                    if multi_tenant:
-                        tenants_handle.add(tenant)
+                            warning_msg.append(
+                                f"{prefix}Probe '{candidate['name']}' has "
+                                f"status 'testing' for {time_difference} "
+                                f"day{plural}"
+                            )
 
-        if multi_tenant:
-            if tenants_handle:
-                ext = ""
-                if len(tenants_handle) > 1:
-                    ext = "s"
-                msg = f"Actions required for tenant{ext}: " \
-                      f"{', '.join(sorted(list(tenants_handle)))}"
+                            if multi_tenant:
+                                tenants_handle.add(tenant)
 
-            if critical_msg:
-                joined_msgs = "\n".join(critical_msg)
-                msg = f"{msg}\n{joined_msgs}"
+                        if candidate["status"] == "processing" \
+                                and time_difference >= self.warning_processing:
+                            if status == 0:
+                                status = 1
 
-            if warning_msg:
-                joined_msgs = "\n".join(warning_msg)
-                msg = f"{msg}\n{joined_msgs}"
+                            warning_msg.append(
+                                f"{prefix}Probe '{candidate['name']}' has "
+                                f"status 'processing' for {time_difference} "
+                                f"day{plural}"
+                            )
 
-        else:
-            if critical_msg:
-                msg = "\n".join(critical_msg)
-
-            if warning_msg:
-                joined_msgs = "\n".join(warning_msg)
-                if status == 1:
-                    msg = joined_msgs
+                            if multi_tenant:
+                                tenants_handle.add(tenant)
 
                 else:
+                    status = 2
+                    critical_msg.append(data[tenant]["exception"])
+
+                    if multi_tenant:
+                        tenants_handle.add(tenant)
+
+            if multi_tenant:
+                if tenants_handle:
+                    ext = ""
+                    if len(tenants_handle) > 1:
+                        ext = "s"
+                    msg = f"Actions required for tenant{ext}: " \
+                          f"{', '.join(sorted(list(tenants_handle)))}"
+
+                if critical_msg:
+                    joined_msgs = "\n".join(critical_msg)
                     msg = f"{msg}\n{joined_msgs}"
 
-        if status == 0:
-            msg_prefix = "OK"
+                if warning_msg:
+                    joined_msgs = "\n".join(warning_msg)
+                    msg = f"{msg}\n{joined_msgs}"
 
-        elif status == 1:
-            msg_prefix = "WARNING"
+            else:
+                if critical_msg:
+                    msg = "\n".join(critical_msg)
 
-        elif status == 2:
-            msg_prefix = "CRITICAL"
+                if warning_msg:
+                    joined_msgs = "\n".join(warning_msg)
+                    if status == 1:
+                        msg = joined_msgs
 
-        else:
-            msg_prefix = "UNKNOWN"
+                    else:
+                        msg = f"{msg}\n{joined_msgs}"
 
-        return {
-            "status": status,
-            "message": f"{msg_prefix} - {msg}"
-        }
+            if status == 0:
+                msg_prefix = "OK"
+
+            elif status == 1:
+                msg_prefix = "WARNING"
+
+            elif status == 2:
+                msg_prefix = "CRITICAL"
+
+            else:
+                msg_prefix = "UNKNOWN"
+
+            return {
+                "status": status,
+                "message": f"{msg_prefix} - {msg}"
+            }
 
 
 def main():
