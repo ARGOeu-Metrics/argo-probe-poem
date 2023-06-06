@@ -250,6 +250,30 @@ def mock_response13(*args, **kwargs):
         return MockResponse(data=mock_candidates2, status_code=200)
 
 
+def mock_response14(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        raise Exception("Some unknown exception")
+
+
+def mock_response15(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    else:
+        raise Exception("Some unknown exception")
+
+
+def mock_response16(*args, **kwargs):
+    if args[0].endswith("tenants/"):
+        return MockResponse(data=mock_tenants, status_code=200)
+
+    if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
+        raise Exception("Some unknown exception")
+
+    else:
+        return MockResponse(data=mock_candidates1, status_code=200)
+
+
 class AnalyseProbeCandidatesTests(unittest.TestCase):
     @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
     @mock.patch("requests.get")
@@ -523,6 +547,67 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
                 "message": "CRITICAL - TENANT1: "
                            "Error fetching probe candidates: "
                            "There has been an error"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 2)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_single_tenant_genric_exception_fetching_tenants(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response14
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 3,
+                "message": "UNKNOWN - mock.hostname.com: "
+                           "Error fetching tenants: Some unknown exception"
+            }
+        )
+        mock_get.assert_called_once_with(
+            "https://mock.hostname.com/api/v2/internal/public_tenants/",
+            timeout=30
+        )
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_single_tenant_generic_excpt_fetching_probe_candidates(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response15
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 3,
+                "message": "UNKNOWN - TENANT1: "
+                           "Error fetching probe candidates: "
+                           "Some unknown exception"
             }
         )
         self.assertEqual(mock_get.call_count, 2)
@@ -826,6 +911,72 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
                            "TENANT1: Error fetching probe candidates: "
                            "There has been an error\n"
                            "TENANT2: New submitted probe: 'test-probe1'"
+            }
+        )
+        self.assertEqual(mock_get.call_count, 3)
+        mock_get.assert_has_calls([
+            mock.call(
+                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant1.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "m0ck_t0k3n"},
+                timeout=30
+            ),
+            mock.call(
+                "https://tenant2.poem.devel.argo.grnet.gr/api/v2/probes/",
+                headers={"x-api-key": "M0CkT0KEN"},
+                timeout=30
+            )
+        ], any_order=True)
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_generic_exception_fetching_tenants(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response14
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 3,
+                "message": "UNKNOWN - mock.hostname.com: Error fetching "
+                           "tenants: Some unknown exception"
+            }
+        )
+        mock_get.assert_called_once_with(
+            "https://mock.hostname.com/api/v2/internal/public_tenants/",
+            timeout=30
+        )
+
+    @mock.patch("argo_probe_poem.poem_probecandidates.get_now")
+    @mock.patch("requests.get")
+    def test_get_status_multiple_tenant_generic_exc_fetching_probe_candidates(
+            self, mock_get, mock_now
+    ):
+        mock_now.return_value = datetime.datetime(2023, 6, 5, 12, 0, 13)
+        mock_get.side_effect = mock_response16
+        analysis = AnalyseProbeCandidates(
+            hostname="mock.hostname.com",
+            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            timeout=30,
+            warning_processing=1,
+            warning_testing=2
+        )
+        self.assertEqual(
+            analysis.get_status(), {
+                "status": 3,
+                "message": "UNKNOWN - Actions required for tenant: TENANT1\n"
+                           "TENANT1: Error fetching probe candidates: "
+                           "Some unknown exception"
             }
         )
         self.assertEqual(mock_get.call_count, 3)

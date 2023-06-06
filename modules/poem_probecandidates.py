@@ -56,6 +56,11 @@ class AnalyseProbeCandidates:
                 f"{self.hostname}: Error fetching tenants: {str(e)}"
             )
 
+        except Exception as e:
+            raise Exception(
+                f"{self.hostname}: Error fetching tenants: {str(e)}"
+            )
+
     def _fetch_probe_candidates(self, tenant):
         try:
             response = requests.get(
@@ -81,7 +86,6 @@ class AnalyseProbeCandidates:
         tenants = self._fetch_tenants()
 
         data = dict()
-
         for tenant in tenants:
             if tenant["name"] != utils.SUPERPOEM and \
                     tenant["name"] in self.tokens.keys():
@@ -95,22 +99,38 @@ class AnalyseProbeCandidates:
                 except RequestException as e:
                     data.update({
                         tenant["name"]: {
-                            "exception": str(e)
+                            "exception": str(e),
+                            "status": 2
+                        }
+                    })
+
+                except Exception as e:
+                    data.update({
+                        tenant["name"]: {
+                            "exception": f"{tenant['name']}: Error fetching "
+                                         f"probe candidates: {str(e)}",
+                            "status": 3
                         }
                     })
 
         return data
 
     def get_status(self):
-        now = get_now()
-
         try:
+            now = get_now()
+
             data = self._fetch_data()
 
         except RequestException as e:
             return {
                 "status": 2,
                 "message": f"CRITICAL - {str(e)}"
+            }
+
+        except Exception as e:
+            return {
+                "status": 3,
+                "message": f"UNKNOWN - {str(e)}"
             }
 
         else:
@@ -183,7 +203,7 @@ class AnalyseProbeCandidates:
                                 tenants_handle.add(tenant)
 
                 else:
-                    status = 2
+                    status = data[tenant]["status"]
                     critical_msg.append(data[tenant]["exception"])
 
                     if multi_tenant:
