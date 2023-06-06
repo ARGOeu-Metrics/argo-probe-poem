@@ -282,7 +282,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response1
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -313,7 +313,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response2
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=3
@@ -344,7 +344,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response2
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -378,7 +378,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response3
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -411,7 +411,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response3
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -443,7 +443,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response4
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -476,7 +476,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response8
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -510,7 +510,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response10
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -536,7 +536,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response11
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -571,7 +571,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response14
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -597,7 +597,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response15
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n"],
+            tokens=[["TENANT1:m0ck_t0k3n"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -630,7 +630,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response5
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -669,7 +669,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response6
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -708,7 +708,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response6
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -750,7 +750,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response7
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -789,7 +789,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response7
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -831,7 +831,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response9
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -872,7 +872,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response12
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -898,7 +898,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response13
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -940,7 +940,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response14
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2
@@ -966,7 +966,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         mock_get.side_effect = mock_response16
         analysis = AnalyseProbeCandidates(
             hostname="mock.hostname.com",
-            tokens=["TENANT1:m0ck_t0k3n", "TENANT2:M0CkT0KEN"],
+            tokens=[["TENANT1:m0ck_t0k3n"], ["TENANT2:M0CkT0KEN"]],
             timeout=30,
             warning_processing=1,
             warning_testing=2

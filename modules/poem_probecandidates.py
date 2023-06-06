@@ -32,7 +32,7 @@ class AnalyseProbeCandidates:
     def _extract_tokens(tokens):
         tokens_dict = dict()
         for token in tokens:
-            [tenant, key] = token.split(":")
+            [tenant, key] = token[0].split(":")
             tokens_dict.update({tenant: key})
 
         return tokens_dict
