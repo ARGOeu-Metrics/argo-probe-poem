@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import sys
 
 import requests
 from argo_probe_poem import utils
@@ -286,6 +287,15 @@ def main():
     )
     args = parser.parse_args()
 
+    analysis = AnalyseProbeCandidates(
+        hostname=args.hostname,
+        timeout=args.timeout,
+        tokens=args.token,
+        warning_processing=args.warning_processing,
+        warning_testing=args.warning_testing
+    )
 
-if __name__ == "__main__":
-    main()
+    output = analysis.get_status()
+
+    print(output["message"])
+    sys.exit(output["status"])
