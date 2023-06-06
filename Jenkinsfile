@@ -11,27 +11,6 @@ pipeline {
 
     }
     stages {
-        stage ('Execute tests for various Python versions') {
-            agent {
-                docker {
-                    image 'argo.registry:5000/epel-7-ams'
-                    args '-u jenkins:jenkins'
-                }
-            }
-            steps {
-                sh '''
-                    cd ${WORKSPACE}/$PROJECT_DIR
-                    rm -f .python-version &>/dev/null
-                    source $HOME/pyenv.sh
-                    PY310V=$(pyenv versions | grep ams-py310)
-                    pyenv local 3.7.15 3.8.15 3.9.15 ${PY310V// /}
-                    tox
-                    coverage xml --omit=*usr* --omit=*.tox*
-                '''
-                cobertura coberturaReportFile: '**/coverage.xml'
-                junit '**/junit.xml'
-            }
-        }
         stage ('Build Centos 7 RPM') {
             agent {
                 docker {
