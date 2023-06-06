@@ -275,13 +275,11 @@ def main():
     )
     parser.add_argument(
         "--warn-processing", dest="warning_processing", type=float, default=1,
-        required=True,
         help="Days before probe returns warning if probe with status "
              "'processing' is present (default: 1)"
     )
     parser.add_argument(
         "--warn-testing", dest="warning_testing", type=float, default=3,
-        required=True,
         help="Days before probe returns warning if probe with status 'testing' "
              "is present (default: 3)"
     )
