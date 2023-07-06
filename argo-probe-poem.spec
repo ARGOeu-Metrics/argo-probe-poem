@@ -3,7 +3,7 @@
 
 Name:          argo-probe-poem
 Summary:       Multi-tenant aware probes checking ARGO POEM.
-Version:       0.1.1
+Version:       0.2.0
 Release:       1%{?dist}
 License:       ASL 2.0
 Source0:       %{name}-%{version}.tar.gz
@@ -15,9 +15,10 @@ Requires:      python36-requests, python36-pyOpenSSL
 
 %description
 This package includes probes that check ARGO POEM component.
-Currently it contains two probes:
+Currently it contains three probes:
  - poem-cert-probe
  - poem-metricapi-probe
+ - poem-probecandidate-probe
 
 %prep
 %setup -q
@@ -38,5 +39,11 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Jul 6 2023 Katarina Zailac <kzailac@srce.hr> - 0.2.0-1%{?dist}
+- ARGO-4319 Create probe that checks if there are pending probe candidates
+- ARGO-4125 Configure POEM probe test execution
+- ARGO-4120  Various poem-sensor fixes
+- ARGO-4118 Bump poem sensor to Python3 and use TLSv1.2
+- ARGO-3988 Switch argo-probe-poem to Py3
 * Thu Jun 9 2021 Katarina Zailac <kzailac@gmail.com> - 0.1.0-1%{?dist}
 - AO-650 Harmonize argo-mon probes
