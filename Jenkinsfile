@@ -22,16 +22,18 @@ pipeline {
                     }
                     stages {
                         stage('Test CentOS 7') {
-                            echo 'Executing unit tests @ CentOS 7'
-                            sh '''
-                                cd $WORKSPACE/$PROJECT_DIR/
-                                rm -f tests/argo_probe_poem
-                                ln -s $PWD/modules/ tests/argo_probe_poem
-                                coverage run -m xmlrunner discover --output-file junit.xml -v tests/
-                                coverage xml
-                            '''
-                            cobertura coberturaReportFile: '**/coverage.xml'
-                            junit '**/junit.xml'
+                            steps {
+                                echo 'Executing unit tests @ CentOS 7'
+                                sh '''
+                                    cd $WORKSPACE/$PROJECT_DIR/
+                                    rm -f tests/argo_probe_poem
+                                    ln -s $PWD/modules/ tests/argo_probe_poem
+                                    coverage run -m xmlrunner discover --output-file junit.xml -v tests/
+                                    coverage xml
+                                '''
+                                cobertura coberturaReportFile: '**/coverage.xml'
+                                junit '**/junit.xml'
+                            }
                         }
                         stage('Build CentOS 7 RPM') {
                             steps {
@@ -54,16 +56,18 @@ pipeline {
                     }
                     stages {
                         stage('Test Rocky 9') {
-                            echo 'Executing unit tests @ Rocky 9'
-                            sh '''
-                                cd $WORKSPACE/$PROJECT_DIR/
-                                rm -f tests/argo_probe_poem
-                                ln -s $PWD/modules/ tests/argo_probe_poem
-                                coverage run -m xmlrunner discover --output-file junit.xml -v tests/
-                                coverage xml
-                            '''
-                            cobertura coberturaReportFile: '**/coverage.xml'
-                            junit '**/junit.xml'
+                            steps {
+                                echo 'Executing unit tests @ Rocky 9'
+                                sh '''
+                                    cd $WORKSPACE/$PROJECT_DIR/
+                                    rm -f tests/argo_probe_poem
+                                    ln -s $PWD/modules/ tests/argo_probe_poem
+                                    coverage run -m xmlrunner discover --output-file junit.xml -v tests/
+                                    coverage xml
+                                '''
+                                cobertura coberturaReportFile: '**/coverage.xml'
+                                junit '**/junit.xml'
+                            }
                         }
                         stage('Build Rocky 9') {
                             steps {
