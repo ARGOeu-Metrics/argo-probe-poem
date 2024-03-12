@@ -2,12 +2,13 @@ from distutils.core import setup
 import glob
 import sys
 
-NAME='argo-probe-poem'
-NAGIOSPLUGINS='/usr/libexec/argo/probes/poem'
+NAME = 'argo-probe-poem'
+NAGIOSPLUGINS = '/usr/libexec/argo/probes/poem'
+
 
 def get_ver():
     try:
-        for line in open(NAME+'.spec'):
+        for line in open(NAME + '.spec'):
             if "Version:" in line:
                 return line.split()[1]
     except IOError:
