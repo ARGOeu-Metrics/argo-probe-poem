@@ -1,13 +1,13 @@
-from types import SimpleNamespace
-import unittest
-from unittest.mock import patch
-import requests
-from freezegun import freeze_time
-
-from argo_probe_poem.poem_cert import utils_func, NagiosResponse
-from argo_probe_poem.poem_metricapi import utils_metric, NagiosResponse
 import socket
+import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import requests
 from OpenSSL.SSL import Error as PyOpenSSLError
+from argo_probe_poem.poem_cert import utils_func
+from argo_probe_poem.poem_metricapi import utils_metric, NagiosResponse
+from freezegun import freeze_time
 
 
 class MockResponse:
@@ -52,8 +52,14 @@ mock_tenants = [
 
 class ArgoProbePoemCert(unittest.TestCase):
     def setUp(self) -> None:
-        arguments = {"hostname": "mock_hostname", "timeout": 60,
-                     "cert": "mock_cert", "key": "mock_key", "capath": "mock_capath"}
+        arguments = {
+            "hostname": "mock_hostname",
+            "timeout": 60,
+            "cert": "mock_cert",
+            "key": "mock_key",
+            "capath": "mock_capath",
+            "skipped_tenants": []
+        }
         self.arguments = SimpleNamespace(**arguments)
 
     def tearDown(self) -> None:
@@ -64,7 +70,10 @@ class ArgoProbePoemCert(unittest.TestCase):
     @patch("argo_probe_poem.poem_cert.check_CN_matches_FQDN")
     @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_all_passed(self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN, mock_print):
+    def test_all_passed(
+            self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN,
+            mock_print
+    ):
         mock_requests.side_effect = pass_web_api
         mock_servercert.return_value = "foo_alt_names", b'20221212235959Z', True
         mock_check_CN_matches_FQDN.return_value = True
@@ -75,12 +84,48 @@ class ArgoProbePoemCert(unittest.TestCase):
 
         self.assertEqual(e.exception.code, 0)
 
+    @freeze_time("1969-12-28")
+    @patch("builtins.print")
+    @patch("argo_probe_poem.poem_cert.check_CN_matches_FQDN")
+    @patch("argo_probe_poem.poem_cert.verify_servercert")
+    @patch("argo_probe_poem.poem_cert.requests.get")
+    def test_skip_tenants(
+            self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN,
+            mock_print
+    ):
+        mock_requests.side_effect = pass_web_api
+        mock_servercert.return_value = "foo_alt_names", b'20221212235959Z', True
+        mock_check_CN_matches_FQDN.return_value = True
+
+        args = {
+            "hostname": "mock_hostname",
+            "timeout": 60,
+            "cert": "mock_cert",
+            "key": "mock_key",
+            "capath": "mock_capath",
+            "skipped_tenants": ["mock_name_1"]
+        }
+        arguments = SimpleNamespace(**args)
+        with self.assertRaises(SystemExit) as e:
+            utils_func(arguments)
+
+        mock_servercert.assert_called_once_with(
+            "mock.domain.2", 60, "mock_capath", 6
+        )
+
+        mock_print.assert_called_once_with("OK - All certificates are valid!")
+
+        self.assertEqual(e.exception.code, 0)
+
     @freeze_time("2022-12-10")
     @patch("builtins.print")
     @patch("argo_probe_poem.poem_cert.check_CN_matches_FQDN")
     @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_certificate_expire_warning(self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN, mock_print):
+    def test_certificate_expire_warning(
+            self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN,
+            mock_print
+    ):
         mock_requests.side_effect = pass_web_api
         mock_servercert.return_value = "foo_alt_names", b'20221212235959Z', True
         mock_check_CN_matches_FQDN.return_value = True
@@ -133,9 +178,12 @@ class ArgoProbePoemCert(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_cert.client_cert_requests_get")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_clientcert_requestexception(self, mock_requests_get, mock_client_cert_request):
+    def test_raise_clientcert_requestexception(
+            self, mock_requests_get, mock_client_cert_request
+    ):
         mock_requests_get.side_effect = pass_web_api
-        mock_client_cert_request.side_effect = requests.exceptions.RequestException
+        mock_client_cert_request.side_effect = \
+            requests.exceptions.RequestException
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
@@ -144,9 +192,12 @@ class ArgoProbePoemCert(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_cert.client_cert_requests_get")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_clientcert_exception(self, mock_requests_get, mock_client_cert_request):
+    def test_raise_clientcert_exception(
+            self, mock_requests_get, mock_client_cert_request
+    ):
         mock_requests_get.side_effect = pass_web_api
-        mock_client_cert_request.side_effect = requests.exceptions.RequestException
+        mock_client_cert_request.side_effect = \
+            requests.exceptions.RequestException
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
@@ -156,7 +207,9 @@ class ArgoProbePoemCert(unittest.TestCase):
     @freeze_time("2022-11-11")
     @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_pyopensslerror_first_tenant_cert_failed(self, mock_requests, mock_servercert):
+    def test_raise_pyopensslerror_first_tenant_cert_failed(
+            self, mock_requests, mock_servercert
+    ):
         mock_requests.side_effect = pass_web_api
         # first server failed
         mock_servercert.side_effect = [
@@ -172,12 +225,16 @@ class ArgoProbePoemCert(unittest.TestCase):
     @freeze_time("2022-11-11")
     @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_pyopensslerror_second_tenant_cn_failed(self, mock_requests, mock_servercert):
+    def test_raise_pyopensslerror_second_tenant_cn_failed(
+            self, mock_requests, mock_servercert
+    ):
         mock_requests.side_effect = pass_web_api
         # first server ok, second CN does not match
-        alt_names = ('DNS:*.domain.1, DNS:*.domain.NO.2, DNS:mock.domain.1')
-        mock_servercert.side_effect = [(alt_names, '20221127235959Z'.encode('utf-8'), True),
-                                       (alt_names, '20221127235959Z'.encode('utf-8'), True)]
+        alt_names = 'DNS:*.domain.1, DNS:*.domain.NO.2, DNS:mock.domain.1'
+        mock_servercert.side_effect = [
+            (alt_names, '20221127235959Z'.encode('utf-8'), True),
+            (alt_names, '20221127235959Z'.encode('utf-8'), True)
+        ]
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
@@ -186,7 +243,9 @@ class ArgoProbePoemCert(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_server_certificate_exception(self, mock_requests, mock_servercert):
+    def test_raise_server_certificate_exception(
+            self, mock_requests, mock_servercert
+    ):
         mock_requests.side_effect = pass_web_api
         mock_servercert.side_effect = [
             PyOpenSSLError('mocked PyOpenSSLError 1'),
@@ -200,15 +259,20 @@ class ArgoProbePoemCert(unittest.TestCase):
     @patch("builtins.print")
     @patch("argo_probe_poem.poem_cert.requests.Response")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_requestexception(self, mock_requests_get, mock_requests_resp, mock_print):
+    def test_raise_requestexception(
+            self, mock_requests_get, mock_requests_resp, mock_print
+    ):
         mock_requests_get.return_value = mock_requests_resp
-        mock_requests_resp.json.side_effect = requests.exceptions.RequestException
+        mock_requests_resp.json.side_effect = \
+            requests.exceptions.RequestException
 
         with self.assertRaises(SystemExit) as e:
             utils_func(self.arguments)
 
         mock_print.assert_called_once_with(
-            'CRITICAL - cannot connect to https://mock_hostname/api/v2/internal/public_tenants/: None')
+            'CRITICAL - cannot connect to https://mock_hostname/api/v2/internal'
+            '/public_tenants/: None'
+        )
 
         self.assertEqual(e.exception.code, 2)
 
@@ -224,7 +288,9 @@ class ArgoProbePoemCert(unittest.TestCase):
     @patch("builtins.print")
     @patch("argo_probe_poem.poem_cert.requests.Response")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_value_error(self, mock_requests_get, mock_requests_resp, mock_print):
+    def test_raise_value_error(
+            self, mock_requests_get, mock_requests_resp, mock_print
+    ):
         mock_requests_get.return_value = mock_requests_resp
         mock_requests_resp.json.side_effect = ValueError
 
@@ -239,7 +305,9 @@ class ArgoProbePoemCert(unittest.TestCase):
     @patch("argo_probe_poem.poem_cert.check_CN_matches_FQDN")
     @patch("argo_probe_poem.poem_cert.verify_servercert")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_fail_cn_match_fqdn(self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN):
+    def test_fail_cn_match_fqdn(
+            self, mock_requests, mock_servercert, mock_check_CN_matches_FQDN
+    ):
         mock_requests.side_effect = pass_web_api
         mock_servercert.return_value = "foo_alt_names", b'20221212235959Z', True
         mock_check_CN_matches_FQDN.return_value = False
@@ -262,7 +330,9 @@ class ArgoProbePoemMetrical(unittest.TestCase):
     @patch("builtins.print")
     @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_all_passed(self, mock_requests, mock_find_missing_metrics, mock_print):
+    def test_all_passed(
+            self, mock_requests, mock_find_missing_metrics, mock_print
+    ):
         mock_requests.side_effect = pass_web_api
         mock_find_missing_metrics.return_value = []
 
@@ -277,7 +347,9 @@ class ArgoProbePoemMetrical(unittest.TestCase):
     @patch("builtins.print")
     @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_error_metric_missing(self, mock_requests, mock_find_missing_metrics, mock_print):
+    def test_error_metric_missing(
+            self, mock_requests, mock_find_missing_metrics, mock_print
+    ):
         mock_requests.side_effect = pass_web_api
         mock_find_missing_metrics.return_value = ["foo"]
 
@@ -285,15 +357,19 @@ class ArgoProbePoemMetrical(unittest.TestCase):
             utils_metric(self.arguments)
 
         mock_print.assert_called_once_with(
-            'CRITICAL - Customer: mock_name_1 - Metric foo is missing! / Customer: mock_name_2 - Metric foo is missing!')
+            'CRITICAL - Customer: mock_name_1 - Metric foo is missing! '
+            '/ Customer: mock_name_2 - Metric foo is missing!')
 
         self.assertEqual(e.exception.code, 2)
 
     @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_raise_mandatory_metrics_requestexception(self, mock_requests, mock_find_missing_metrics):
+    def test_raise_mandatory_metrics_requestexception(
+            self, mock_requests, mock_find_missing_metrics
+    ):
         mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.side_effect = requests.exceptions.RequestException
+        mock_find_missing_metrics.side_effect = \
+            requests.exceptions.RequestException
 
         with self.assertRaises(SystemExit) as e:
             utils_metric(self.arguments)
@@ -302,7 +378,9 @@ class ArgoProbePoemMetrical(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_raise_mandatory_metrics_value_exeption(self, mock_requests, mock_find_missing_metrics):
+    def test_raise_mandatory_metrics_value_exeption(
+            self, mock_requests, mock_find_missing_metrics
+    ):
         mock_requests.side_effect = pass_web_api
         mock_find_missing_metrics.side_effect = ValueError
 
@@ -313,9 +391,13 @@ class ArgoProbePoemMetrical(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_raise_mandatory_metrics_exception(self, mock_requests, mock_find_missing_metrics):
+    def test_raise_mandatory_metrics_exception(
+            self, mock_requests, mock_find_missing_metrics
+    ):
         mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.return_value = ['missing_metric1', 'missing_metric2']
+        mock_find_missing_metrics.return_value = [
+            'missing_metric1', 'missing_metric2'
+        ]
 
         with self.assertRaises(SystemExit) as e:
             utils_metric(self.arguments)
@@ -324,9 +406,12 @@ class ArgoProbePoemMetrical(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_cert.requests.Response")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_main_requestexception(self, mock_requests_get, mock_requests_resp):
+    def test_raise_main_requestexception(
+            self, mock_requests_get, mock_requests_resp
+    ):
         mock_requests_get.return_value = mock_requests_resp
-        mock_requests_resp.json.side_effect = requests.exceptions.RequestException
+        mock_requests_resp.json.side_effect = \
+            requests.exceptions.RequestException
 
         with self.assertRaises(SystemExit) as e:
             utils_metric(self.arguments)
@@ -335,7 +420,9 @@ class ArgoProbePoemMetrical(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_cert.requests.Response")
     @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_main_value_error(self, mock_requests_get, mock_requests_resp):
+    def test_raise_main_value_error(
+            self, mock_requests_get, mock_requests_resp
+    ):
         mock_requests_get.return_value = mock_requests_resp
         mock_requests_resp.json.side_effect = ValueError
 

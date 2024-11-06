@@ -3,10 +3,9 @@ import datetime
 import socket
 from time import sleep
 
-
 import requests
-from OpenSSL.SSL import Error as PyOpenSSLError
 from OpenSSL.SSL import Context, Connection, TLSv1_2_METHOD
+from OpenSSL.SSL import Error as PyOpenSSLError
 from OpenSSL.SSL import VERIFY_PEER
 from OpenSSL.SSL import WantReadError as SSLWantReadError
 from argo_probe_poem import utils
@@ -123,7 +122,13 @@ def utils_func(arguments):
     try:
         tenants = requests.get(
             'https://' + arguments.hostname + utils.TENANT_API).json()
-        tenants = utils.remove_name_from_json(tenants, utils.SUPERPOEM)
+
+        tenants = [
+            item for item in tenants if (
+                item["name"] not in arguments.skipped_tenants and
+                item["name"] != utils.SUPERPOEM
+            )
+        ]
 
         for tenant in tenants:
             # verify client certificate
