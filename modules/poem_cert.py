@@ -2,10 +2,12 @@ import argparse
 import datetime
 import re
 import socket
+import sys
 
 import requests
 from OpenSSL import SSL
 from argo_probe_poem import utils
+from argo_probe_poem.probe_response import ProbeResponse
 
 HOSTCERT = "/etc/grid-security/hostcert.pem"
 HOSTKEY = "/etc/grid-security/hostkey.pem"
@@ -214,7 +216,7 @@ def main():
     )
     parser.add_argument(
         "--skipped-tenants", dest="skipped_tenants", type=str, nargs="*",
-        help="list of space separated tenants that are going to be skipped"
+        help="space-separated list of tenants that are going to be skipped"
     )
     parser.add_argument('-t', "--timeout", dest='timeout', type=int, default=60)
     args = parser.parse_args()
@@ -224,13 +226,26 @@ def main():
         cert=args.cert,
         key=args.key,
         capath=args.capath,
-        skipped_tenants=[
-            item.strip() for item in args.skipped_tenants.split(",")
-        ],
+        skipped_tenants=args.skipped_tenants,
         timeout=args.timeout
     )
+    status = ProbeResponse()
 
-    cert.verify()
+    try:
+        cert.verify()
+        status.ok("All certificates are valid")
+
+    except WarningCertificateException as e:
+        status.warning(str(e))
+
+    except CertificateException as e:
+        status.critical(str(e))
+
+    except Exception as e:
+        status.unknown(str(e))
+
+    print(status.msg())
+    sys.exit(status.code())
 
 
 if __name__ == "__main__":
