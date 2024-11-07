@@ -1,9 +1,16 @@
 # Common code between poem_cert.py and poem_metricapi.py
 MIP_API = '/api/v2/metrics'
-TENANT_API = '/api/v2/internal/public_tenants/'
-METRICS_API = '/api/v2/internal/public_metric/'
+TENANT_API = '/api/v2/internal/public_tenants'
+METRICS_API = '/api/v2/internal/public_metric'
 
 SUPERPOEM = 'SuperPOEM Tenant'
+
+class POEMException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return f"POEM: {str(self.msg)}"
 
 strerr = '' # Error message string
 num_excp_expand = 0

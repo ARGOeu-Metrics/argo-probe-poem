@@ -1,230 +1,236 @@
 import argparse
 import datetime
+import re
 import socket
-from time import sleep
 
 import requests
-from OpenSSL.SSL import Context, Connection, TLSv1_2_METHOD
-from OpenSSL.SSL import Error as PyOpenSSLError
-from OpenSSL.SSL import VERIFY_PEER
-from OpenSSL.SSL import WantReadError as SSLWantReadError
+from OpenSSL import SSL
 from argo_probe_poem import utils
-from argo_probe_poem.NagiosResponse import NagiosResponse
-from argo_probe_poem.utils import errmsg_from_excp
 
 HOSTCERT = "/etc/grid-security/hostcert.pem"
 HOSTKEY = "/etc/grid-security/hostkey.pem"
 CAPATH = "/etc/grid-security/certificates/"
 
 
-# Verifies server certificate
-tls_protocol = TLSv1_2_METHOD
+class CertificateException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return str(self.msg)
 
 
-def verify_servercert(host, timeout, capath, tls_protocol):
-    server_ctx = Context(tls_protocol)
-    server_ctx.load_verify_locations(None, capath)
-    server_cert_chain = []
+class WarningCertificateException(CertificateException):
+    def __init__(self, msg):
+        self.msg = msg
 
-    def verify_cb(conn, cert, errnum, depth, ok):
-        server_cert_chain.append(cert)
-        return ok
 
-    server_ctx.set_verify(VERIFY_PEER, verify_cb)
+class SSLException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
 
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def __str__(self):
+        return str(self.msg)
 
-    sock.setblocking(1)
-    sock.settimeout(timeout)
-    sock.connect((host, 443))
-    server_conn = Connection(server_ctx, sock)
 
-    server_conn.set_tlsext_host_name(host.encode('utf-8'))
-    server_conn.set_connect_state()
+class Certificate:
+    def __init__(self, hostname, cert, key, capath, skipped_tenants, timeout):
+        self.hostname = hostname
+        self.cert = cert
+        self.key = key
+        self.capath = capath
+        self.skipped_tenants = skipped_tenants
+        self.timeout = timeout
 
-    def iosock_try():
-        ok = True
+    def _get_tenants(self):
         try:
-            server_conn.do_handshake()
-            sleep(0.5)
-        except SSLWantReadError as e:
-            ok = False
-            pass
-        except Exception as e:
-            raise e
-        return ok
+            response = requests.get(
+                f"https://{self.hostname}{utils.TENANT_API}"
+            )
 
-    try:
-        while True:
-            if iosock_try():
+            if not response.ok:
+                msg = (
+                    f"Tenant fetch error: {response.status_code} "
+                    f"{response.reason}"
+                )
+
+                try:
+                    msg = f"{msg}: {response.json()['detail']}"
+
+                except (ValueError, TypeError, KeyError):
+                    pass
+
+                raise utils.POEMException(msg)
+
+            else:
+                tenants = response.json()
+
+                return([
+                    item for item in tenants if (
+                        item["name"] not in self.skipped_tenants and
+                        item["name"] != utils.SUPERPOEM
+                    )
+                ])
+
+        except requests.exceptions.RequestException as e:
+            raise utils.POEMException(f"Tenant fetch error: {str(e)}")
+
+    def verify_client_cert(self, tenant):
+        try:
+            requests.get(
+                f"https://{tenant['domain_url']}",
+                cert=(self.cert, self.key),
+                verify=True
+            )
+
+        except requests.exceptions.RequestException as e:
+            raise CertificateException(
+                f"{tenant['name']}: Client certificate verification failed: "
+                f"{str(e)}"
+            )
+
+        except Exception as e:
+            raise CertificateException(f"{tenant['name']}: {str(e)}")
+
+    def _get_certificate(self, hostname):
+        try:
+            context = SSL.Context(SSL.TLSv1_2_METHOD)
+            context.load_verify_locations(None, self.capath)
+            conn = SSL.Connection(
+                context,
+                socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            )
+            conn.settimeout(self.timeout)
+            conn.connect((hostname, 443))
+            conn.setblocking(1)
+            conn.do_handshake()
+
+            cert = conn.get_peer_certificate()
+
+            conn.shutdown()
+            conn.close()
+
+            return cert
+
+        except SSL.Error as e:
+            raise SSLException(
+                f"Server certificate verification failed: {str(e)}"
+
+            )
+
+        except socket.timeout as e:
+            raise SSLException(
+                f"Connection timeout after {self.timeout} seconds"
+            )
+
+        except socket.error as e:
+            raise SSLException(f"Connection error: {str(e)}")
+
+    @staticmethod
+    def _is_cn_ok(alt_names, fqdn):
+        alt_names = [item.strip()[4:] for item in alt_names.split(",")]
+        cn_ok = False
+        for cn in alt_names:
+            pattern = re.compile(cn.replace('*', '[A-Za-z0-9_-]+?'))
+            if bool(re.match(pattern, fqdn)):
+                cn_ok = True
                 break
 
-        server_subject_alt_names, server_expire = server_alt_names_and_cert_chain(
-            server_cert_chain)
+        return cn_ok
 
-    except PyOpenSSLError as e:
-        raise e
+    def verify_server_cert(self, tenant):
+        try:
+            fqdn = tenant["domain_url"]
+            certificate = self._get_certificate(fqdn)
 
-    finally:
-        server_conn.shutdown()
-        server_conn.close()
-
-    return server_subject_alt_names, server_expire, True
-
-
-def server_alt_names_and_cert_chain(server_cert_chain):
-    server_subject_alt_names = ""
-    for i in range(0, server_cert_chain[-1].get_extension_count()):
-        extension = server_cert_chain[-1].get_extension(i)
-        if extension.get_short_name().decode('utf-8') == 'subjectAltName':
-            server_subject_alt_names = str(extension)
-            break
-
-    server_expire = server_cert_chain[-1].get_notAfter()
-
-    return server_subject_alt_names, server_expire
-
-
-# Transforms the string value of X509Extension object to list of alt names
-def alt_names_string_to_list(string_alt_names):
-    list_alt_names = string_alt_names.split(", ")
-    temp_list = []
-    for x in list_alt_names:
-        temp_list.append(x[4:])
-    return temp_list
-
-
-# Checks if certificate CN covers FQDN
-def check_CN_matches_FQDN(list_alt_names, fqdn):
-    ok = False
-    for alt_name in list_alt_names:
-        if len(alt_name) > 0:
-            if alt_name[0] == '*':
-                clean_alt_name = alt_name[1:]
-                if fqdn.endswith(clean_alt_name):
-                    ok = True
-                    break
-            else:
-                if alt_name == fqdn:
-                    ok = True
-                    break
-    return ok
-
-
-def client_cert_requests_get(tenant, arguments):
-    requests.get('https://' + tenant['domain_url'],
-                 cert=(arguments.cert, arguments.key), verify=True)
-
-
-def utils_func(arguments):
-    nagios_response = NagiosResponse("All certificates are valid!")
-
-    try:
-        tenants = requests.get(
-            'https://' + arguments.hostname + utils.TENANT_API).json()
-
-        tenants = [
-            item for item in tenants if (
-                item["name"] not in arguments.skipped_tenants and
-                item["name"] != utils.SUPERPOEM
+            not_after = datetime.datetime.strptime(
+                certificate.get_notAfter().decode("utf-8"), "%Y%m%d%H%M%SZ"
             )
-        ]
+            today = datetime.datetime.now()
 
+            if (not_after - today).days < 15:
+                raise WarningCertificateException(
+                    f"{tenant['name']}: Server certificate will expire in "
+                    f"{(not_after - today).days} days"
+                )
+
+            subject_alt_name = ""
+            for i in range(certificate.get_extension_count()):
+                extension = certificate.get_extension(i)
+                if extension.get_short_name().decode() == "subjectAltName":
+                    subject_alt_name = str(extension)
+
+            if not self._is_cn_ok(subject_alt_name, fqdn):
+                raise CertificateException(
+                    f"{tenant['name']}: Server certificate CN does not match "
+                    f"{fqdn}"
+                )
+
+        except SSLException as e:
+            raise CertificateException(f"{tenant['name']}: {str(e)}")
+
+        except WarningCertificateException:
+            raise
+
+    def verify(self):
+        tenants = self._get_tenants()
+
+        critical = list()
+        warning = list()
         for tenant in tenants:
-            # verify client certificate
             try:
-                client_cert_requests_get(tenant, arguments)
+                self.verify_client_cert(tenant)
+                self.verify_server_cert(tenant)
 
-            except requests.exceptions.RequestException as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage(
-                    'Customer: ' + tenant['name'] + ' - Client certificate verification failed: %s' % errmsg_from_excp(e))
-                print(nagios_response.getMsg())
-                raise SystemExit(nagios_response.getCode())
+            except WarningCertificateException as e:
+                warning.append(str(e))
+                continue
 
-            except Exception as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage(errmsg_from_excp(e))
-                print(nagios_response.getMsg())
-                raise SystemExit(nagios_response.getCode())
+            except CertificateException as e:
+                critical.append(str(e))
+                continue
 
-            # verify server certificate
-            try:
-                server_subject_alt_names, server_expire, bool = verify_servercert(
-                    tenant['domain_url'], arguments.timeout, arguments.capath, tls_protocol)
+        if len(critical) > 0:
+            raise CertificateException(" / ".join(critical))
 
-                # Check if certificate CN matches host name
-                alt_names_list = alt_names_string_to_list(server_subject_alt_names)
-
-                if not check_CN_matches_FQDN(alt_names_list, tenant['domain_url']):
-                    nagios_response.setCode(NagiosResponse.CRITICAL)
-                    nagios_response.writeCriticalMessage(
-                        'Customer: ' + tenant['name'] +  ' - Server certificate CN does not match %s' % tenant['domain_url'])
-                    continue
-
-                # Check certificate expire date
-                dte = datetime.datetime.strptime(
-                    server_expire.decode('utf-8'), '%Y%m%d%H%M%SZ')
-                dtn = datetime.datetime.now()
-                if (dte - dtn).days <= 15:
-                    nagios_response.setCode(NagiosResponse.WARNING)
-                    nagios_response.writeWarningMessage(
-                        'Customer: ' + tenant['name'] + ' - Server certificate will expire in %i days' % (dte - dtn).days)
-
-            except PyOpenSSLError as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage(
-                    'Customer: ' + tenant['name'] + ' - Server certificate verification failed: %s' % errmsg_from_excp(e))
-
-            except socket.timeout as e:
-                nagios_response.writeCriticalMessage(
-                    'Customer: ' + tenant['name'] + ' - Connection timeout after %s seconds' % arguments.timeout)
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-
-            except socket.error as e:
-                nagios_response.writeCriticalMessage(
-                    'Customer: ' + tenant['name'] + ' - Connection error: %s' % errmsg_from_excp(e))
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-
-
-            except Exception as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage(
-                        'CRITICAL - %s' % (errmsg_from_excp(e)))
-
-
-    except requests.exceptions.RequestException as e:
-        nagios_response.setCode(NagiosResponse.CRITICAL)
-        nagios_response.writeCriticalMessage('cannot connect to %s: %s' % ('https://' + arguments.hostname + utils.TENANT_API,
-                                                                           errmsg_from_excp(e)))
-
-    except ValueError as e:
-        nagios_response.setCode(NagiosResponse.CRITICAL)
-        nagios_response.writeCriticalMessage(
-            '%s - %s' % (utils.TENANT_API, errmsg_from_excp(e)))
-
-    except Exception as e:
-        nagios_response.setCode(NagiosResponse.CRITICAL)
-        nagios_response.writeCriticalMessage('%s' % (errmsg_from_excp(e)))
-
-    print(nagios_response.getMsg())
-    raise SystemExit(nagios_response.getCode())
+        if len(warning) > 0:
+            raise WarningCertificateException(" / ".join(warning))
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-H', dest='hostname',
-                        required=True, type=str, help='hostname')
-    parser.add_argument('--cert', dest='cert',
-                        default=HOSTCERT, type=str, help='Certificate')
-    parser.add_argument('--key', dest='key', default=HOSTKEY,
-                        type=str, help='Certificate key')
-    parser.add_argument('--capath', dest='capath',
-                        default=CAPATH, type=str, help='CA directory')
-    parser.add_argument('-t', dest='timeout', type=int, default=60)
-    arguments = parser.parse_args()
+    parser.add_argument(
+        "-H", "--hostname", dest='hostname', required=True, type=str,
+        help='hostname'
+    )
+    parser.add_argument(
+        '--cert', dest='cert', default=HOSTCERT, type=str, help='Certificate'
+    )
+    parser.add_argument(
+        '--key', dest='key', default=HOSTKEY, type=str, help='Certificate key'
+    )
+    parser.add_argument(
+        '--capath', dest='capath', default=CAPATH, type=str, help='CA directory'
+    )
+    parser.add_argument(
+        "--skipped-tenants", dest="skipped_tenants", type=str, nargs="*",
+        help="list of space separated tenants that are going to be skipped"
+    )
+    parser.add_argument('-t', "--timeout", dest='timeout', type=int, default=60)
+    args = parser.parse_args()
 
-    utils_func(arguments)
+    cert = Certificate(
+        hostname=args.hostname,
+        cert=args.cert,
+        key=args.key,
+        capath=args.capath,
+        skipped_tenants=[
+            item.strip() for item in args.skipped_tenants.split(",")
+        ],
+        timeout=args.timeout
+    )
+
+    cert.verify()
 
 
 if __name__ == "__main__":
