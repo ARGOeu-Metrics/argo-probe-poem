@@ -1,11 +1,11 @@
+import copy
 import unittest
-from types import SimpleNamespace
 from unittest.mock import patch, call, MagicMock
 
 import requests
 from argo_probe_poem.poem_cert import Certificate, \
     WarningCertificateException, CertificateException, SSLException
-from argo_probe_poem.poem_metricapi import utils_metric, NagiosResponse
+from argo_probe_poem.poem_metricapi import Metrics, MetricsException
 from argo_probe_poem.utils import POEMException
 from freezegun import freeze_time
 
@@ -25,6 +25,171 @@ mock_tenants = [
         "created_on": "2022-09-24",
         "nr_metrics": 222,
         "nr_probes": 22
+    }
+]
+
+mock_metrics = [
+    {
+        "argo.ams.publish-consume": {
+            "tags": [
+                "ams",
+                "argo",
+                "messaging"
+            ],
+            "probe": "ams-probe",
+            "config": {
+                "maxCheckAttempts": "3",
+                "timeout": "60",
+                "path": "/usr/libexec/argo/probes/ams",
+                "interval": "30",
+                "retryInterval": "5"
+            },
+            "flags": {},
+            "dependency": {},
+            "attribute": {
+                "ARGO_AMS_TOKEN": "--token",
+                "ARGO_AMS_PROJECT": "--project"
+            },
+            "parameter": {},
+            "file_parameter": {},
+            "file_attribute": {},
+            "parent": "",
+            "docurl": "https://github.com/ARGOeu-Metrics/argo-probe-ams/blob/"
+                      "master/README.md"
+        }
+    },
+    {
+        "argo.poem-tools.check": {
+            "tags": [
+                "argo",
+                "internal",
+                "monitoring"
+            ],
+            "probe": "check_log",
+            "config": {
+                "maxCheckAttempts": "4",
+                "timeout": "120",
+                "path": "/usr/libexec/argo/probes/argo_tools",
+                "interval": "120",
+                "retryInterval": "120"
+            },
+            "flags": {
+                "NOHOSTNAME": "1",
+                "NOPUBLISH": "1"
+            },
+            "dependency": {},
+            "attribute": {},
+            "parameter": {
+                "--file": "/var/log/argo-poem-tools/argo-poem-tools.log",
+                "--age": "2",
+                "--app": "argo-poem-packages"
+            },
+            "file_parameter": {},
+            "file_attribute": {},
+            "parent": "",
+            "docurl": "https://github.com/ARGOeu-Metrics/argo-probe-argo-tools/"
+                      "blob/master/README.md"
+        }
+    },
+    {
+        "generic.disk.usage-local": {
+            "tags": [
+                "disk",
+                "internal"
+            ],
+            "probe": "check_disk",
+            "config": {
+                "maxCheckAttempts": "3",
+                "timeout": "15",
+                "path": "$USER1$",
+                "interval": "60",
+                "retryInterval": "5"
+            },
+            "flags": {
+                "NOHOSTNAME": "1",
+                "PNP": "1",
+                "NOPUBLISH": "1"
+            },
+            "dependency": {},
+            "attribute": {},
+            "parameter": {
+                "-w": "10%",
+                "-c": "5%"
+            },
+            "file_parameter": {},
+            "file_attribute": {},
+            "parent": "",
+            "docurl": "http://nagios-plugins.org/doc/man/check_disk.html"
+        }
+    },
+    {
+        "generic.certificate.validity": {
+            "tags": [
+                "certificate"
+            ],
+            "probe": "check_ssl_cert",
+            "config": {
+                "timeout": "240",
+                "retryInterval": "30",
+                "path": "$USER1$",
+                "maxCheckAttempts": "2",
+                "interval": "240"
+            },
+            "flags": {},
+            "dependency": {},
+            "attribute": {
+                "NAGIOS_HOST_CERT": "-C",
+                "NAGIOS_HOST_KEY": "-K",
+                "PORT": "-p"
+            },
+            "parameter": {
+                "-w": "14",
+                "-c": "0",
+                "--rootcert-dir": "/etc/grid-security/certificates",
+                "--rootcert-file": "/etc/pki/tls/certs/ca-bundle.crt",
+                "--ignore-ocsp": "",
+                "--ignore-sct": ""
+            },
+            "file_parameter": {},
+            "file_attribute": {},
+            "parent": "",
+            "docurl": "https://github.com/matteocorti/check_ssl_cert/blob/"
+                      "master/README.md"
+        }
+    },
+    {
+        "generic.http.connect": {
+            "tags": [
+                "http",
+                "network"
+            ],
+            "probe": "check_http",
+            "config": {
+                "interval": "5",
+                "maxCheckAttempts": "3",
+                "path": "$USER1$",
+                "retryInterval": "3",
+                "timeout": "60"
+            },
+            "flags": {
+                "OBSESS": "1",
+                "PNP": "1"
+            },
+            "dependency": {},
+            "attribute": {
+                "SSL": "-S --sni",
+                "PORT": "-p",
+                "PATH": "-u"
+            },
+            "parameter": {
+                "--link": "",
+                "--onredirect": "follow"
+            },
+            "file_parameter": {},
+            "file_attribute": {},
+            "parent": "",
+            "docurl": "http://nagios-plugins.org/doc/man/check_http.html"
+        }
     }
 ]
 
@@ -130,7 +295,6 @@ class PoemCertTests(unittest.TestCase):
         )
         with self.assertRaises(POEMException) as context:
             self.cert._get_tenants()
-
         mock_get.assert_called_once_with(
             "https://poem.devel.argo.grnet.gr/api/v2/internal/public_tenants"
         )
@@ -145,7 +309,6 @@ class PoemCertTests(unittest.TestCase):
         mock_get.return_value = MockResponse(status_code=500)
         with self.assertRaises(POEMException) as context:
             self.cert._get_tenants()
-
         mock_get.assert_called_once_with(
             "https://poem.devel.argo.grnet.gr/api/v2/internal/public_tenants"
         )
@@ -208,9 +371,9 @@ class PoemCertTests(unittest.TestCase):
     def test_certificate_wrong_cn(
             self, mock_get_tenants, mock_client_cert
     ):
-        changed_mock_tenants = mock_tenants.copy()
+        changed_mock_tenants = copy.deepcopy(mock_tenants)
         changed_mock_tenants[0]["domain_url"] = "test.example.com"
-        mock_get_tenants.return_value = mock_tenants
+        mock_get_tenants.return_value = changed_mock_tenants
         mock_client_cert.side_effect = mock_function
         with patch(
                 "argo_probe_poem.poem_cert.Certificate._get_certificate",
@@ -244,126 +407,156 @@ class PoemCertTests(unittest.TestCase):
         )
 
 
-class ArgoProbePoemMetrical(unittest.TestCase):
-    def setUp(self) -> None:
-        arguments = {"hostname": "mock_hostname",
-                     "timeout": 60, "mandatory_metrics": "mock_metrics"}
-        self.arguments = SimpleNamespace(**arguments)
+class PoemMetricsTests(unittest.TestCase):
+    def setUp(self):
+        self.metrics = Metrics(
+            hostname="poem.devel.argo.grnet.gr",
+            mandatory_metrics=[
+                "argo.poem-tools.check", "generic.disk.usage-local"
+            ],
+            skipped_tenants=[],
+            timeout=180
+        )
 
-    def tearDown(self) -> None:
-        NagiosResponse._msgBagCritical = []
+        self.metrics_missing = Metrics(
+            hostname="poem.devel.argo.grnet.gr",
+            mandatory_metrics=[
+                "argo.poem-tools.check",
+                "generic.disk.usage-local",
+                "generic.procs.crond"
+            ],
+            skipped_tenants=[],
+            timeout=180
+        )
 
-    @patch("builtins.print")
-    @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
+        self.metrics_skipped_tenants = Metrics(
+            hostname="poem.devel.argo.grnet.gr",
+            mandatory_metrics=[
+                "argo.poem-tools.check",
+                "generic.disk.usage-local"
+            ],
+            skipped_tenants=["TENANT1"],
+            timeout=180
+        )
+
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_all_passed(
-            self, mock_requests, mock_find_missing_metrics, mock_print
-    ):
-        mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.return_value = []
+    def test_get_tenants(self, mock_get):
+        mock_get.return_value = MockResponse(data=mock_tenants, status_code=200)
+        tenants = self.metrics._get_tenants()
+        mock_get.assert_called_once_with(
+            "https://poem.devel.argo.grnet.gr/api/v2/internal/public_tenants"
+        )
+        self.assertEqual(tenants, mock_tenants)
 
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        mock_print.assert_called_once_with(
-            'OK - All mandatory metrics are present!')
-
-        self.assertEqual(e.exception.code, 0)
-
-    @patch("builtins.print")
-    @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_error_metric_missing(
-            self, mock_requests, mock_find_missing_metrics, mock_print
-    ):
-        mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.return_value = ["foo"]
+    def test_get_tenants_with_skipped_tenants(self, mock_get):
+        mock_get.return_value = MockResponse(data=mock_tenants, status_code=200)
+        tenants = self.metrics_skipped_tenants._get_tenants()
+        mock_get.assert_called_once_with(
+            "https://poem.devel.argo.grnet.gr/api/v2/internal/public_tenants"
+        )
+        self.assertEqual(tenants, [mock_tenants[1]])
 
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        mock_print.assert_called_once_with(
-            'CRITICAL - Customer: TENANT1 - Metric foo is missing! '
-            '/ Customer: TENANT2 - Metric foo is missing!')
-
-        self.assertEqual(e.exception.code, 2)
-
-    @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_raise_mandatory_metrics_requestexception(
-            self, mock_requests, mock_find_missing_metrics
-    ):
-        mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.side_effect = \
-            requests.exceptions.RequestException
+    def test_get_tenants_with_exception(self, mock_get):
+        mock_get.return_value = MockResponse(
+            data={"detail": "There has been a problem"}, status_code=400
+        )
+        with self.assertRaises(POEMException) as context:
+            self.metrics._get_tenants()
+        mock_get.assert_called_once_with(
+            "https://poem.devel.argo.grnet.gr/api/v2/internal/public_tenants"
+        )
+        self.assertEqual(
+            context.exception.__str__(),
+            "POEM: Tenant fetch error: 400 BAD REQUEST: There has been a "
+            "problem"
+        )
 
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        self.assertEqual(e.exception.code, 2)
-
-    @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_raise_mandatory_metrics_value_exeption(
-            self, mock_requests, mock_find_missing_metrics
-    ):
-        mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.side_effect = ValueError
+    def test_get_tenants_with_exception_without_msg(self, mock_get):
+        mock_get.return_value = MockResponse(status_code=500)
+        with self.assertRaises(POEMException) as context:
+            self.metrics._get_tenants()
+        mock_get.assert_called_once_with(
+            "https://poem.devel.argo.grnet.gr/api/v2/internal/public_tenants"
+        )
+        self.assertEqual(
+            context.exception.__str__(),
+            "POEM: Tenant fetch error: Requests exception"
+        )
 
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        self.assertEqual(e.exception.code, 2)
-
-    @patch("argo_probe_poem.poem_metricapi.find_missing_metrics")
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_raise_mandatory_metrics_exception(
-            self, mock_requests, mock_find_missing_metrics
+    def test_get_metrics(self, mock_get):
+        mock_get.return_value = MockResponse(data=mock_metrics, status_code=200)
+        metrics = self.metrics._get_metrics(tenant=mock_tenants[0])
+        mock_get.assert_called_once_with(
+            "https://tenant1.poem.devel.argo.grnet.gr/api/v2/internal/"
+            "public_metric", timeout=180
+        )
+        self.assertEqual(metrics, mock_metrics)
+
+    @patch("argo_probe_poem.poem_metricapi.requests.get")
+    def test_get_metrics_with_exception(self, mock_get):
+        mock_get.return_value = MockResponse(
+            data={"detail": "There has been a problem"}, status_code=400
+        )
+        with self.assertRaises(POEMException) as context:
+            self.metrics._get_metrics(tenant=mock_tenants[0])
+        mock_get.assert_called_once_with(
+            "https://tenant1.poem.devel.argo.grnet.gr/api/v2/internal/"
+            "public_metric", timeout=180
+        )
+        self.assertEqual(
+            context.exception.__str__(),
+            "POEM: Metrics fetch error: 400 BAD REQUEST: There has been a "
+            "problem"
+        )
+
+    @patch("argo_probe_poem.poem_metricapi.requests.get")
+    def test_get_metrics_with_exception_without_msg(self, mock_get):
+        mock_get.return_value = MockResponse(status_code=500)
+        with self.assertRaises(POEMException) as context:
+            self.metrics._get_metrics(tenant=mock_tenants[0])
+        mock_get.assert_called_once_with(
+            "https://tenant1.poem.devel.argo.grnet.gr/api/v2/internal/"
+            "public_metric", timeout=180
+        )
+        self.assertEqual(
+            context.exception.__str__(),
+            "POEM: Metrics fetch error: Requests exception"
+        )
+
+    @patch("argo_probe_poem.poem_metricapi.Metrics._get_metrics")
+    @patch("argo_probe_poem.poem_metricapi.Metrics._get_tenants")
+    def test_check_mandatory_metrics_ok(
+            self, mock_get_tenants, mock_get_metrics
     ):
-        mock_requests.side_effect = pass_web_api
-        mock_find_missing_metrics.return_value = [
-            'missing_metric1', 'missing_metric2'
-        ]
+        mock_get_tenants.return_value = mock_tenants
+        mock_get_metrics.return_value = mock_metrics
+        self.metrics.check_mandatory()
+        mock_get_tenants.assert_called_once()
+        self.assertEqual(mock_get_metrics.call_count, 2)
+        mock_get_metrics.assert_has_calls([
+            call(mock_tenants[0]), call(mock_tenants[1]),
+        ], any_order=True)
 
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        self.assertEqual(e.exception.code, 2)
-
-    @patch("argo_probe_poem.poem_cert.requests.Response")
-    @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_main_requestexception(
-            self, mock_requests_get, mock_requests_resp
+    @patch("argo_probe_poem.poem_metricapi.Metrics._get_metrics")
+    @patch("argo_probe_poem.poem_metricapi.Metrics._get_tenants")
+    def test_check_mandatory_metrics_missing(
+            self, mock_get_tenants, mock_get_metrics
     ):
-        mock_requests_get.return_value = mock_requests_resp
-        mock_requests_resp.json.side_effect = \
-            requests.exceptions.RequestException
-
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        self.assertEqual(e.exception.code, 2)
-
-    @patch("argo_probe_poem.poem_cert.requests.Response")
-    @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_main_value_error(
-            self, mock_requests_get, mock_requests_resp
-    ):
-        mock_requests_get.return_value = mock_requests_resp
-        mock_requests_resp.json.side_effect = ValueError
-
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        self.assertEqual(e.exception.code, 2)
-
-    @patch("argo_probe_poem.poem_cert.requests.Response")
-    @patch("argo_probe_poem.poem_cert.requests.get")
-    def test_raise_main_exception(self, mock_requests_get, mock_requests_resp):
-        mock_requests_get.return_value = mock_requests_resp
-        mock_requests_resp.json.side_effect = Exception
-
-        with self.assertRaises(SystemExit) as e:
-            utils_metric(self.arguments)
-
-        self.assertEqual(e.exception.code, 2)
+        mock_get_tenants.return_value = mock_tenants
+        mock_get_metrics.return_value = mock_metrics
+        with self.assertRaises(MetricsException) as context:
+            self.metrics_missing.check_mandatory()
+        mock_get_tenants.assert_called_once()
+        self.assertEqual(mock_get_metrics.call_count, 2)
+        mock_get_metrics.assert_has_calls([
+            call(mock_tenants[0]), call(mock_tenants[1]),
+        ], any_order=True)
+        self.assertEqual(
+            context.exception.__str__(),
+            "TENANT1: Metric generic.procs.crond is missing / "
+            "TENANT2: Metric generic.procs.crond is missing"
+        )
