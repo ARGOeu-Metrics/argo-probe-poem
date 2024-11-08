@@ -102,8 +102,10 @@ class Certificate:
                 context,
                 socket=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             )
-            conn.settimeout(self.timeout)
             conn.connect((hostname, 443))
+            conn.set_tlsext_host_name(hostname.encode("utf-8"))
+            conn.set_connect_state()
+            conn.settimeout(self.timeout)
             conn.setblocking(1)
             conn.do_handshake()
 
@@ -117,7 +119,6 @@ class Certificate:
         except SSL.Error as e:
             raise SSLException(
                 f"Server certificate verification failed: {str(e)}"
-
             )
 
         except socket.timeout as e:
