@@ -30,166 +30,347 @@ mock_tenants = [
 
 mock_metrics = [
     {
-        "argo.ams.publish-consume": {
-            "tags": [
-                "ams",
-                "argo",
-                "messaging"
-            ],
-            "probe": "ams-probe",
-            "config": {
-                "maxCheckAttempts": "3",
-                "timeout": "60",
-                "path": "/usr/libexec/argo/probes/ams",
-                "interval": "30",
-                "retryInterval": "5"
+        "id": 329,
+        "name": "argo.ams.publish-consume",
+        "mtype": "Active",
+        "tags": [
+            "ams",
+            "messaging",
+            "argo"
+        ],
+        "probeversion": "ams-probe (present)",
+        "group": "EGI",
+        "description": "",
+        "parent": "",
+        "probeexecutable": "ams-probe",
+        "config": [
+            {
+                "key": "maxCheckAttempts",
+                "value": "3"
             },
-            "flags": {},
-            "dependency": {},
-            "attribute": {
-                "ARGO_AMS_TOKEN": "--token",
-                "ARGO_AMS_PROJECT": "--project"
+            {
+                "key": "timeout",
+                "value": "60"
             },
-            "parameter": {},
-            "file_parameter": {},
-            "file_attribute": {},
-            "parent": "",
-            "docurl": "https://github.com/ARGOeu-Metrics/argo-probe-ams/blob/"
-                      "master/README.md"
-        }
+            {
+                "key": "path",
+                "value": "/usr/libexec/argo/probes/ams"
+            },
+            {
+                "key": "interval",
+                "value": "30"
+            },
+            {
+                "key": "retryInterval",
+                "value": "5"
+            }
+        ],
+        "attribute": [
+            {
+                "key": "ARGO_AMS_TOKEN",
+                "value": "--token"
+            },
+            {
+                "key": "ARGO_AMS_PROJECT",
+                "value": "--project"
+            }
+        ],
+        "dependancy": [],
+        "flags": [],
+        "files": [],
+        "parameter": [],
+        "fileparameter": []
     },
     {
-        "argo.poem-tools.check": {
-            "tags": [
-                "argo",
-                "internal",
-                "monitoring"
-            ],
-            "probe": "check_log",
-            "config": {
-                "maxCheckAttempts": "4",
-                "timeout": "120",
-                "path": "/usr/libexec/argo/probes/argo_tools",
-                "interval": "120",
-                "retryInterval": "120"
+        "id": 305,
+        "name": "argo.poem-tools.check",
+        "mtype": "Active",
+        "tags": [
+            "internal",
+            "argo",
+            "monitoring"
+        ],
+        "probeversion": "check_log (0.3.0)",
+        "group": "EGI",
+        "description": "Probe inspecting the execution of argo-poem-tools by "
+                       "parsing the log file.",
+        "parent": "",
+        "probeexecutable": "check_log",
+        "config": [
+            {
+                "key": "maxCheckAttempts",
+                "value": "4"
             },
-            "flags": {
-                "NOHOSTNAME": "1",
-                "NOPUBLISH": "1"
+            {
+                "key": "timeout",
+                "value": "120"
             },
-            "dependency": {},
-            "attribute": {},
-            "parameter": {
-                "--file": "/var/log/argo-poem-tools/argo-poem-tools.log",
-                "--age": "2",
-                "--app": "argo-poem-packages"
+            {
+                "key": "path",
+                "value": "/usr/libexec/argo/probes/argo_tools"
             },
-            "file_parameter": {},
-            "file_attribute": {},
-            "parent": "",
-            "docurl": "https://github.com/ARGOeu-Metrics/argo-probe-argo-tools/"
-                      "blob/master/README.md"
-        }
+            {
+                "key": "interval",
+                "value": "120"
+            },
+            {
+                "key": "retryInterval",
+                "value": "120"
+            }
+        ],
+        "attribute": [],
+        "dependancy": [],
+        "flags": [
+            {
+                "key": "NOHOSTNAME",
+                "value": "1"
+            },
+            {
+                "key": "NOPUBLISH",
+                "value": "1"
+            }
+        ],
+        "files": [],
+        "parameter": [
+            {
+                "key": "--file",
+                "value": "/var/log/argo-poem-tools/argo-poem-tools.log"
+            },
+            {
+                "key": "--age",
+                "value": "2"
+            },
+            {
+                "key": "--app",
+                "value": "argo-poem-packages"
+            }
+        ],
+        "fileparameter": []
     },
     {
-        "generic.disk.usage-local": {
-            "tags": [
-                "disk",
-                "internal"
-            ],
-            "probe": "check_disk",
-            "config": {
-                "maxCheckAttempts": "3",
-                "timeout": "15",
-                "path": "$USER1$",
-                "interval": "60",
-                "retryInterval": "5"
+        "id": 323,
+        "name": "generic.disk.usage-local",
+        "mtype": "Active",
+        "tags": [
+            "internal",
+            "disk"
+        ],
+        "probeversion": "check_disk (present)",
+        "group": "EGI",
+        "description": "",
+        "parent": "",
+        "probeexecutable": "check_disk",
+        "config": [
+            {
+                "key": "maxCheckAttempts",
+                "value": "3"
             },
-            "flags": {
-                "NOHOSTNAME": "1",
-                "PNP": "1",
-                "NOPUBLISH": "1"
+            {
+                "key": "timeout",
+                "value": "15"
             },
-            "dependency": {},
-            "attribute": {},
-            "parameter": {
-                "-w": "10%",
-                "-c": "5%"
+            {
+                "key": "path",
+                "value": "$USER1$"
             },
-            "file_parameter": {},
-            "file_attribute": {},
-            "parent": "",
-            "docurl": "http://nagios-plugins.org/doc/man/check_disk.html"
-        }
+            {
+                "key": "interval",
+                "value": "60"
+            },
+            {
+                "key": "retryInterval",
+                "value": "5"
+            }
+        ],
+        "attribute": [],
+        "dependancy": [],
+        "flags": [
+            {
+                "key": "NOHOSTNAME",
+                "value": "1"
+            },
+            {
+                "key": "PNP",
+                "value": "1"
+            },
+            {
+                "key": "NOPUBLISH",
+                "value": "1"
+            }
+        ],
+        "files": [],
+        "parameter": [
+            {
+                "key": "-w",
+                "value": "10%"
+            },
+            {
+                "key": "-c",
+                "value": "5%"
+            }
+        ],
+        "fileparameter": []
     },
     {
-        "generic.certificate.validity": {
-            "tags": [
-                "certificate"
-            ],
-            "probe": "check_ssl_cert",
-            "config": {
-                "timeout": "240",
-                "retryInterval": "30",
-                "path": "$USER1$",
-                "maxCheckAttempts": "2",
-                "interval": "240"
+        "id": 293,
+        "name": "generic.http.connect",
+        "mtype": "Active",
+        "tags": [
+            "network",
+            "http"
+        ],
+        "probeversion": "check_http (present)",
+        "group": "EGI",
+        "description": "This metric checks the HTTP service on the specified "
+                       "host. It can test normal (http) and secure (https) "
+                       "servers, follow redirects, search for strings and "
+                       "regular expressions, check connection times, and "
+                       "report on certificate expiration times.",
+        "parent": "",
+        "probeexecutable": "check_http",
+        "config": [
+            {
+                "key": "interval",
+                "value": "5"
             },
-            "flags": {},
-            "dependency": {},
-            "attribute": {
-                "NAGIOS_HOST_CERT": "-C",
-                "NAGIOS_HOST_KEY": "-K",
-                "PORT": "-p"
+            {
+                "key": "maxCheckAttempts",
+                "value": "3"
             },
-            "parameter": {
-                "-w": "14",
-                "-c": "0",
-                "--rootcert-dir": "/etc/grid-security/certificates",
-                "--rootcert-file": "/etc/pki/tls/certs/ca-bundle.crt",
-                "--ignore-ocsp": "",
-                "--ignore-sct": ""
+            {
+                "key": "path",
+                "value": "$USER1$"
             },
-            "file_parameter": {},
-            "file_attribute": {},
-            "parent": "",
-            "docurl": "https://github.com/matteocorti/check_ssl_cert/blob/"
-                      "master/README.md"
-        }
+            {
+                "key": "retryInterval",
+                "value": "3"
+            },
+            {
+                "key": "timeout",
+                "value": "60"
+            }
+        ],
+        "attribute": [
+            {
+                "key": "SSL",
+                "value": "-S --sni"
+            },
+            {
+                "key": "PORT",
+                "value": "-p"
+            },
+            {
+                "key": "PATH",
+                "value": "-u"
+            }
+        ],
+        "dependancy": [],
+        "flags": [
+            {
+                "key": "OBSESS",
+                "value": "1"
+            },
+            {
+                "key": "PNP",
+                "value": "1"
+            }
+        ],
+        "files": [],
+        "parameter": [
+            {
+                "key": "--link",
+                "value": ""
+            },
+            {
+                "key": "--onredirect",
+                "value": "follow"
+            }
+        ],
+        "fileparameter": []
     },
     {
-        "generic.http.connect": {
-            "tags": [
-                "http",
-                "network"
-            ],
-            "probe": "check_http",
-            "config": {
-                "interval": "5",
-                "maxCheckAttempts": "3",
-                "path": "$USER1$",
-                "retryInterval": "3",
-                "timeout": "60"
+        "id": 335,
+        "name": "generic.certificate.validity",
+        "mtype": "Active",
+        "tags": [
+            "certificate"
+        ],
+        "probeversion": "check_ssl_cert (2.80.0)",
+        "group": "EGI",
+        "description": "This metric verifies the SSL certificate on a web "
+                       "server to make sure it is correctly installed, valid "
+                       "and trusted.  It checks an X.509 certificate for the "
+                       "following: \n- checks if the server is running and "
+                       "delivers a valid certificate\n- checks if the CA "
+                       "matches a given pattern\n- checks the validity",
+        "parent": "",
+        "probeexecutable": "check_ssl_cert",
+        "config": [
+            {
+                "key": "timeout",
+                "value": "240"
             },
-            "flags": {
-                "OBSESS": "1",
-                "PNP": "1"
+            {
+                "key": "retryInterval",
+                "value": "30"
             },
-            "dependency": {},
-            "attribute": {
-                "SSL": "-S --sni",
-                "PORT": "-p",
-                "PATH": "-u"
+            {
+                "key": "path",
+                "value": "$USER1$"
             },
-            "parameter": {
-                "--link": "",
-                "--onredirect": "follow"
+            {
+                "key": "maxCheckAttempts",
+                "value": "2"
             },
-            "file_parameter": {},
-            "file_attribute": {},
-            "parent": "",
-            "docurl": "http://nagios-plugins.org/doc/man/check_http.html"
-        }
+            {
+                "key": "interval",
+                "value": "240"
+            }
+        ],
+        "attribute": [
+            {
+                "key": "NAGIOS_HOST_CERT",
+                "value": "-C"
+            },
+            {
+                "key": "NAGIOS_HOST_KEY",
+                "value": "-K"
+            },
+            {
+                "key": "PORT",
+                "value": "-p"
+            }
+        ],
+        "dependancy": [],
+        "flags": [],
+        "files": [],
+        "parameter": [
+            {
+                "key": "-w",
+                "value": "14"
+            },
+            {
+                "key": "-c",
+                "value": "0"
+            },
+            {
+                "key": "--rootcert-dir",
+                "value": "/etc/grid-security/certificates"
+            },
+            {
+                "key": "--rootcert-file",
+                "value": "/etc/pki/tls/certs/ca-bundle.crt"
+            },
+            {
+                "key": "--ignore-ocsp",
+                "value": ""
+            },
+            {
+                "key": "--ignore-sct",
+                "value": ""
+            }
+        ],
+        "fileparameter": []
     }
 ]
 

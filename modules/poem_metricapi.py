@@ -88,9 +88,7 @@ class Metrics:
 
         msgs = list()
         for tenant in tenants:
-            metrics = set().union(
-                *(d.keys() for d in self._get_metrics(tenant))
-            )
+            metrics = set([item["name"] for item in self._get_metrics(tenant)])
 
             if not self.mandatory_metrics.issubset(metrics):
                 missing = self.mandatory_metrics.difference(metrics)
