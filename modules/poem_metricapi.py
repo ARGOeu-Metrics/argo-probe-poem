@@ -18,8 +18,11 @@ class Metrics:
     def __init__(self, hostname, mandatory_metrics, skipped_tenants, timeout):
         self.hostname = hostname
         self.mandatory_metrics = set(mandatory_metrics)
-        self.skipped_tenants = skipped_tenants
         self.timeout = timeout
+        if skipped_tenants:
+            self.skipped_tenants = skipped_tenants
+        else:
+            self.skipped_tenants = []
 
     def _get_tenants(self):
         try:
