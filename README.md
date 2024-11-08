@@ -1,25 +1,28 @@
 # argo-probe-poem
 
-Package contains three tenant-aware probes checking POEM functionality.  is checking if the tenants' certificates are valid, `poem-metricapi-probe` is checking that all the tenants' POEMs contain required list of mandatory metrics. `poem-probecandidate-probe` is checking if there are any new probe candidates submitted to POEM, and raises issues based on its status and the days passed since the change of status.
+Package contains three tenant-aware probes checking POEM functionality. `poem-cert-probe` is checking if the tenants' certificates are valid, `poem-metricapi-probe` is checking that all the tenants' POEMs contain required list of mandatory metrics. `poem-probecandidate-probe` is checking if there are any new probe candidates submitted to POEM, and raises issues based on its status and the days passed since the change of status.
 
 ## Synopsis
 
 ### `poem-cert-probe`
 
-The probe checking the certificate has five arguments: 
+The probe checking the certificate has six arguments. Hostname is the SuperPOEM hostname. CERT and KEY are the locations of certificate and key files, CAPATH is the location of CA directory. There is also optional list of tenants for which the checks **will not** be run. TIMEOUT is time in seconds after which the probe will stop execution.
 
 ```
 # /usr/libexec/argo/probes/poem/poem-cert-probe --help
-usage: poem-cert-probe [-h] -H HOSTNAME [--cert CERT] [--key KEY]
-                       [--capath CAPATH] [-t TIMEOUT]
+usage: poem-cert-probe [-h] -H HOSTNAME [--cert CERT] [--key KEY] [--capath CAPATH] 
+                        [--skipped-tenants [SKIPPED_TENANTS ...]] [-t TIMEOUT]
 
 optional arguments:
-  -h, --help       show this help message and exit
-  -H HOSTNAME      hostname
-  --cert CERT      Certificate
-  --key KEY        Certificate key
-  --capath CAPATH  CA directory
-  -t TIMEOUT
+  -h, --help            show this help message and exit
+  -H HOSTNAME, --hostname HOSTNAME
+                        hostname
+  --cert CERT           Certificate
+  --key KEY             Certificate key
+  --capath CAPATH       CA directory
+  --skipped-tenants [SKIPPED_TENANTS ...]
+                        space-separated list of tenants that are going to be skipped
+  -t TIMEOUT, --timeout TIMEOUT
 ```
 
 Example execution of the probe:
@@ -31,20 +34,22 @@ OK - All certificates are valid!
 
 ### `poem-metricapi-probe`
 
-The one checking the mandatory metrics' has only three: 
+The probe checking the mandatory metrics' has four argument. HOSTNAME is again the hostname of SuperPOEM. MANDATORY_METRICS is a list of metrics that are required to be in each of the tenant POEMs. This probe also has the option to skip some of the tenants, they are given as space-separated list. TIMEOUT is defined same as for `probe-cert-probe`.
 
 ```
 # /usr/libexec/argo/probes/poem/poem-metricapi-probe --help
-usage: poem-metricapi-probe [-h] -H HOSTNAME --mandatory-metrics
-                            [MANDATORY_METRICS [MANDATORY_METRICS ...]]
-                            [-t TIMEOUT]
+usage: poem-metricapi-probe [-h] -H HOSTNAME --mandatory-metrics [MANDATORY_METRICS ...] 
+                            [--skipped-tenants [SKIPPED_TENANTS ...]] [-t TIMEOUT]
 
 optional arguments:
   -h, --help            show this help message and exit
-  -H HOSTNAME           Super POEM FQDN
-  --mandatory-metrics [MANDATORY_METRICS [MANDATORY_METRICS ...]]
-                        List of mandatory metrics seperated by space
-  -t TIMEOUT
+  -H HOSTNAME, --hostname HOSTNAME
+                        SuperPOEM FQDN
+  --mandatory-metrics [MANDATORY_METRICS ...]
+                        space-separated list of mandatory metrics
+  --skipped-tenants [SKIPPED_TENANTS ...]
+                        space-separated list of tenants that are going to be skipped
+  -t TIMEOUT, --timeout TIMEOUT
 ```
 
 Example execution of the probe:
