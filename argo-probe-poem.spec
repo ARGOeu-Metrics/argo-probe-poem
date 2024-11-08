@@ -11,14 +11,7 @@ BuildRoot:     %{_tmppath}/%{name}-%{version}-%{release}-root
 Group:         Network/Monitoring
 BuildArch:     noarch
 BuildRequires: python3-devel
-
-%if 0%{?el7}
-Requires:      python36-requests, python36-pyOpenSSL
-
-%else
 Requires:      python3-requests, python3-pyOpenSSL
-
-%endif
 
 
 %description
