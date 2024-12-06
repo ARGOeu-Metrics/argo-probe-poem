@@ -10,6 +10,7 @@ class ProbeResponse:
 
     def warning(self, msg):
         self._msg = f"WARNING - {msg}"
+        self._code = self.WARNING
 
     def ok(self, msg):
         self._msg = f"OK - {msg}"
