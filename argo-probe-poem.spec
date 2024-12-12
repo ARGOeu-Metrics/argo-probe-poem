@@ -3,7 +3,7 @@
 
 Name:          argo-probe-poem
 Summary:       Multi-tenant aware probes checking ARGO POEM.
-Version:       0.2.1
+Version:       0.2.2
 Release:       1%{?dist}
 License:       ASL 2.0
 Source0:       %{name}-%{version}.tar.gz
@@ -40,6 +40,9 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Thu Dec 12 2024 Katarina Zailac <kzailac@srce.hr> - 0.2.2-1%{?dist}
+- ARGO-4891 POEM probe not returning status code properl
+- ARGO-4886 Add option to skip tenants checks for POEM probe
 * Thu Apr 4 2024 Katarina Zailac <kzailac@srce.hr> - 0.2.1-1%{?dist}
 - AO-926 Create Rocky 9 rpm for argo-probe-poem
 * Thu Jul 6 2023 Katarina Zailac <kzailac@srce.hr> - 0.2.0-1%{?dist}
