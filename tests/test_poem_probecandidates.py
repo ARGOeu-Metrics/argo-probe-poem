@@ -129,7 +129,7 @@ class MockResponse:
 
 
 def mock_response1(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -137,7 +137,7 @@ def mock_response1(*args, **kwargs):
 
 
 def mock_response2(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -145,7 +145,7 @@ def mock_response2(*args, **kwargs):
 
 
 def mock_response3(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -153,7 +153,7 @@ def mock_response3(*args, **kwargs):
 
 
 def mock_response4(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -161,7 +161,7 @@ def mock_response4(*args, **kwargs):
 
 
 def mock_response5(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -172,7 +172,7 @@ def mock_response5(*args, **kwargs):
 
 
 def mock_response6(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -183,7 +183,7 @@ def mock_response6(*args, **kwargs):
 
 
 def mock_response7(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -194,7 +194,7 @@ def mock_response7(*args, **kwargs):
 
 
 def mock_response8(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -202,7 +202,7 @@ def mock_response8(*args, **kwargs):
 
 
 def mock_response9(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -213,7 +213,7 @@ def mock_response9(*args, **kwargs):
 
 
 def mock_response10(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=None, status_code=500)
 
     else:
@@ -221,7 +221,7 @@ def mock_response10(*args, **kwargs):
 
 
 def mock_response11(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -229,7 +229,7 @@ def mock_response11(*args, **kwargs):
 
 
 def mock_response12(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=None, status_code=400)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -240,7 +240,7 @@ def mock_response12(*args, **kwargs):
 
 
 def mock_response13(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -251,12 +251,12 @@ def mock_response13(*args, **kwargs):
 
 
 def mock_response14(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         raise Exception("Some unknown exception")
 
 
 def mock_response15(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     else:
@@ -264,7 +264,7 @@ def mock_response15(*args, **kwargs):
 
 
 def mock_response16(*args, **kwargs):
-    if args[0].endswith("tenants/"):
+    if args[0].endswith("tenants"):
         return MockResponse(data=mock_tenants, status_code=200)
 
     if args[0].startswith("https://tenant1") and args[0].endswith("probes/"):
@@ -296,7 +296,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -327,7 +327,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -359,7 +359,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -392,7 +392,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -426,7 +426,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -457,7 +457,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -491,7 +491,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -523,7 +523,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
             }
         )
         mock_get.assert_called_once_with(
-            "https://mock.hostname.com/api/v2/internal/public_tenants/",
+            "https://mock.hostname.com/api/v2/internal/public_tenants",
             timeout=30
         )
 
@@ -552,7 +552,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -584,7 +584,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
             }
         )
         mock_get.assert_called_once_with(
-            "https://mock.hostname.com/api/v2/internal/public_tenants/",
+            "https://mock.hostname.com/api/v2/internal/public_tenants",
             timeout=30
         )
 
@@ -613,7 +613,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 2)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -645,7 +645,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -684,7 +684,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -726,7 +726,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -765,7 +765,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -807,7 +807,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -848,7 +848,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -885,7 +885,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
             }
         )
         mock_get.assert_called_once_with(
-            "https://mock.hostname.com/api/v2/internal/public_tenants/",
+            "https://mock.hostname.com/api/v2/internal/public_tenants",
             timeout=30
         )
 
@@ -916,7 +916,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(
@@ -953,7 +953,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
             }
         )
         mock_get.assert_called_once_with(
-            "https://mock.hostname.com/api/v2/internal/public_tenants/",
+            "https://mock.hostname.com/api/v2/internal/public_tenants",
             timeout=30
         )
 
@@ -982,7 +982,7 @@ class AnalyseProbeCandidatesTests(unittest.TestCase):
         self.assertEqual(mock_get.call_count, 3)
         mock_get.assert_has_calls([
             mock.call(
-                "https://mock.hostname.com/api/v2/internal/public_tenants/",
+                "https://mock.hostname.com/api/v2/internal/public_tenants",
                 timeout=30
             ),
             mock.call(

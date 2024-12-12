@@ -1,75 +1,158 @@
 import argparse
+import sys
 
 import requests
 from argo_probe_poem import utils
-from argo_probe_poem.NagiosResponse import NagiosResponse
-from argo_probe_poem.utils import errmsg_from_excp
+from argo_probe_poem.probe_response import ProbeResponse
 
 
-def find_missing_metrics(arguments, tenant):
-    metrics = requests.get('https://' + tenant['domain_url'] + utils.METRICS_API, timeout=arguments.timeout).json()
+class MetricsException(Exception):
+    def __init__(self, msg):
+        self.msg = msg
 
-    missing_metrics = list(arguments.mandatory_metrics)
-    for metric in metrics:
-        if metric['name'] in arguments.mandatory_metrics:
-            missing_metrics.remove(metric['name'])
-
-    return missing_metrics
+    def __str__(self):
+        return str(self.msg)
 
 
+class Metrics:
+    def __init__(self, hostname, mandatory_metrics, skipped_tenants, timeout):
+        self.hostname = hostname
+        self.mandatory_metrics = set(mandatory_metrics)
+        self.timeout = timeout
+        if skipped_tenants:
+            self.skipped_tenants = skipped_tenants
+        else:
+            self.skipped_tenants = []
 
-def utils_metric(arguments):
-    nagios_response = NagiosResponse("All mandatory metrics are present!")
+    def _get_tenants(self):
+        try:
+            response = requests.get(
+                f"https://{self.hostname}{utils.TENANT_API}"
+            )
 
-    try:
-        tenants = requests.get('https://' + arguments.hostname + utils.TENANT_API, timeout=arguments.timeout).json()
-        tenants = utils.remove_name_from_json(tenants, utils.SUPERPOEM)
+            if not response.ok:
+                msg = (
+                    f"Tenant fetch error: {response.status_code} "
+                    f"{response.reason}"
+                )
 
+                try:
+                    msg = f"{msg}: {response.json()['detail']}"
+
+                except (ValueError, TypeError, KeyError):
+                    pass
+
+                raise utils.POEMException(msg)
+
+            else:
+                tenants = response.json()
+
+                return([
+                    item for item in tenants if (
+                        item["name"] not in self.skipped_tenants and
+                        item["name"] != utils.SUPERPOEM
+                    )
+                ])
+
+        except requests.exceptions.RequestException as e:
+            raise utils.POEMException(f"Tenant fetch error: {str(e)}")
+
+    def _get_metrics(self, tenant):
+        try:
+            response = requests.get(
+                f"https://{tenant['domain_url']}{utils.METRICS_API}",
+                timeout=self.timeout
+            )
+
+            if not response.ok:
+                msg = (
+                    f"Metrics fetch error: {response.status_code} "
+                    f"{response.reason}"
+                )
+
+                try:
+                    msg = f"{msg}: {response.json()['detail']}"
+
+                except (ValueError, TypeError, KeyError):
+                    pass
+
+                raise utils.POEMException(msg)
+
+            else:
+                metrics = response.json()
+
+                return metrics
+
+        except requests.exceptions.RequestException as e:
+            raise utils.POEMException(f"Metrics fetch error: {str(e)}")
+
+    def check_mandatory(self):
+        tenants = self._get_tenants()
+
+        msgs = list()
         for tenant in tenants:
-            # Check mandatory metrics
-            try:
-                missing_metrics = find_missing_metrics(arguments, tenant)
+            metrics = set([item["name"] for item in self._get_metrics(tenant)])
 
-                for metric in missing_metrics:
-                    nagios_response.setCode(NagiosResponse.CRITICAL)
-                    nagios_response.writeCriticalMessage('Customer: ' + tenant['name'] + ' - Metric %s is missing!' % metric)
+            if not self.mandatory_metrics.issubset(metrics):
+                missing = self.mandatory_metrics.difference(metrics)
 
-            except requests.exceptions.RequestException as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage('Customer: ' + tenant['name'] + ' - cannot connect to %s: %s' % ('https://' + tenant['domain_url'] + utils.METRICS_API,
-                                                            errmsg_from_excp(e)))
-            except ValueError as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage('Customer: ' + tenant['name'] + ' - %s - %s' % (utils.METRICS_API, errmsg_from_excp(e)))
+                if len(missing) > 1:
+                    word = "Metrics"
+                    verb = "are"
 
-            except Exception as e:
-                nagios_response.setCode(NagiosResponse.CRITICAL)
-                nagios_response.writeCriticalMessage('%s' % (errmsg_from_excp(e)))
+                else:
+                    word = "Metric"
+                    verb = "is"
 
-    except requests.exceptions.RequestException as e:
-        nagios_response.setCode(NagiosResponse.CRITICAL)
-        nagios_response.writeCriticalMessage('cannot connect to %s: %s' % ('https://' + arguments.hostname + utils.TENANT_API,
-                                                    errmsg_from_excp(e)))
-    except ValueError as e:
-        nagios_response.setCode(NagiosResponse.CRITICAL)
-        nagios_response.writeCriticalMessage('%s - %s' % (utils.TENANT_API, errmsg_from_excp(e)))
+                msgs.append(
+                    f"{tenant['name']}: {word} {', '.join(missing)} {verb} "
+                    f"missing"
+                )
 
-    except Exception as e:
-        nagios_response.setCode(NagiosResponse.CRITICAL)
-        nagios_response.writeCriticalMessage('%s' % (errmsg_from_excp(e)))
+        if len(msgs) > 0:
+            raise MetricsException(" / ".join(msgs))
 
-    print(nagios_response.getMsg())
-    raise SystemExit(nagios_response.getCode())
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-H', dest='hostname', required=True, type=str, help='Super POEM FQDN')
-    parser.add_argument('--mandatory-metrics', dest='mandatory_metrics', required=True,
-     type=str, nargs='*', help='List of mandatory metrics seperated by space')
-    parser.add_argument('-t', dest='timeout', type=int, default=180)
-    arguments = parser.parse_args()
+    parser.add_argument(
+        '-H', "--hostname", dest='hostname', required=True, type=str,
+        help='SuperPOEM FQDN'
+    )
+    parser.add_argument(
+        '--mandatory-metrics', dest='mandatory_metrics', required=True,
+        type=str, nargs='*', help="space-separated list of mandatory metrics"
+    )
+    parser.add_argument(
+        "--skipped-tenants", dest="skipped_tenants", type=str, nargs="*",
+        help="space-separated list of tenants that are going to be skipped"
+    )
+    parser.add_argument(
+        '-t', "--timeout", dest='timeout', type=int, default=180
+    )
+    args = parser.parse_args()
 
-    utils_metric(arguments)
+    status = ProbeResponse()
+
+    metrics = Metrics(
+        hostname=args.hostname,
+        mandatory_metrics=args.mandatory_metrics,
+        skipped_tenants=args.skipped_tenants,
+        timeout=args.timeout
+    )
+
+    try:
+        metrics.check_mandatory()
+        status.ok("All mandatory metrics are present")
+
+    except MetricsException as e:
+        status.critical(str(e))
+
+    except Exception as e:
+        status.unknown(str(e))
+
+    print(status.msg())
+    sys.exit(status.code())
 
 
 if __name__ == "__main__":
