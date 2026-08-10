@@ -682,7 +682,7 @@ class PoemMetricsTests(unittest.TestCase):
     @patch("argo_probe_poem.poem_metricapi.requests.get")
     def test_get_metrics_with_exception(self, mock_get):
         mock_get.return_value = MockResponse(
-            data={"detail": "There has been a problem"}, status_code=500
+            data={"detail": "There has been a problem"}, status_code=400
         )
         with self.assertRaises(POEMException) as context:
             self.metrics._get_metrics(tenant=mock_tenants[0])
@@ -692,14 +692,14 @@ class PoemMetricsTests(unittest.TestCase):
         )
         self.assertEqual(
             context.exception.__str__(),
-            "POEM: Metrics fetch error: 500 SERVER ERROR: There has been a "
+            "POEM: Metrics fetch error: 400 BAD REQUEST: There has been a "
             "problem"
         )
 
     @patch("argo_probe_poem.poem_metricapi.requests.get")
-    def test_get_metrics_bad_request(self, mock_get):
+    def test_get_metrics_server_error(self, mock_get):
         mock_get.return_value = MockResponse(
-            data={"detail": "There has been a problem"}, status_code=400
+            data={"detail": "There has been a problem"}, status_code=500
         )
         metrics = self.metrics._get_metrics(tenant=mock_tenants[0])
         mock_get.assert_called_once_with(
@@ -710,7 +710,7 @@ class PoemMetricsTests(unittest.TestCase):
 
     @patch("argo_probe_poem.poem_metricapi.requests.get")
     def test_get_metrics_with_exception_without_msg(self, mock_get):
-        mock_get.return_value = MockResponse(status_code=500)
+        mock_get.return_value = MockResponse(status_code=400)
         with self.assertRaises(POEMException) as context:
             self.metrics._get_metrics(tenant=mock_tenants[0])
         mock_get.assert_called_once_with(

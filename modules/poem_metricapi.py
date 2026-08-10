@@ -66,7 +66,7 @@ class Metrics:
             )
 
             if not response.ok:
-                if response.status_code == 400:
+                if response.status_code == 500:
                     return json.loads(response.text)
 
                 msg = (
@@ -116,7 +116,10 @@ class Metrics:
 
             except TypeError:
                 msg = self._get_metrics(tenant)
-                msgs.append(f"{tenant['name']}: {msg['detail']}")
+                if 'detail' in msg:
+                    msgs.append(f"{tenant['name']}: {msg['detail']}")
+                else:
+                    msgs.append(f"{tenant['name']}: {repr(msg)}")
 
         if len(msgs) > 0:
             raise MetricsException(" / ".join(msgs))
