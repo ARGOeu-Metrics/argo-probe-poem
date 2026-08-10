@@ -1,4 +1,5 @@
 import copy
+import json
 import unittest
 from unittest.mock import patch, call, MagicMock
 
@@ -378,6 +379,7 @@ mock_metrics = [
 class MockResponse:
     def __init__(self, status_code, data=None):
         self.data = data
+        self.text = json.dumps(data)
         self.status_code = status_code
 
         self.ok = False
@@ -695,8 +697,20 @@ class PoemMetricsTests(unittest.TestCase):
         )
 
     @patch("argo_probe_poem.poem_metricapi.requests.get")
+    def test_get_metrics_server_error(self, mock_get):
+        mock_get.return_value = MockResponse(
+            data={"detail": "There has been a problem"}, status_code=500
+        )
+        metrics = self.metrics._get_metrics(tenant=mock_tenants[0])
+        mock_get.assert_called_once_with(
+            "https://tenant1.poem.devel.argo.grnet.gr/api/v2/internal/"
+            "public_metric", timeout=180
+        )
+        self.assertEqual(metrics, {"detail": "There has been a problem"})
+
+    @patch("argo_probe_poem.poem_metricapi.requests.get")
     def test_get_metrics_with_exception_without_msg(self, mock_get):
-        mock_get.return_value = MockResponse(status_code=500)
+        mock_get.return_value = MockResponse(status_code=400)
         with self.assertRaises(POEMException) as context:
             self.metrics._get_metrics(tenant=mock_tenants[0])
         mock_get.assert_called_once_with(

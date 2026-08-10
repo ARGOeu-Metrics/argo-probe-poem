@@ -1,5 +1,6 @@
 import argparse
 import sys
+import json
 
 import requests
 from argo_probe_poem import utils
@@ -65,6 +66,9 @@ class Metrics:
             )
 
             if not response.ok:
+                if response.status_code == 500:
+                    return json.loads(response.text)
+
                 msg = (
                     f"Metrics fetch error: {response.status_code} "
                     f"{response.reason}"
@@ -91,23 +95,31 @@ class Metrics:
 
         msgs = list()
         for tenant in tenants:
-            metrics = set([item["name"] for item in self._get_metrics(tenant)])
+            try:
+                metrics = set([item["name"] for item in self._get_metrics(tenant)])
 
-            if not self.mandatory_metrics.issubset(metrics):
-                missing = self.mandatory_metrics.difference(metrics)
+                if not self.mandatory_metrics.issubset(metrics):
+                    missing = self.mandatory_metrics.difference(metrics)
 
-                if len(missing) > 1:
-                    word = "Metrics"
-                    verb = "are"
+                    if len(missing) > 1:
+                        word = "Metrics"
+                        verb = "are"
 
+                    else:
+                        word = "Metric"
+                        verb = "is"
+
+                    msgs.append(
+                        f"{tenant['name']}: {word} {', '.join(missing)} {verb} "
+                        f"missing"
+                    )
+
+            except TypeError:
+                msg = self._get_metrics(tenant)
+                if 'detail' in msg:
+                    msgs.append(f"{tenant['name']}: {msg['detail']}")
                 else:
-                    word = "Metric"
-                    verb = "is"
-
-                msgs.append(
-                    f"{tenant['name']}: {word} {', '.join(missing)} {verb} "
-                    f"missing"
-                )
+                    msgs.append(f"{tenant['name']}: {repr(msg)}")
 
         if len(msgs) > 0:
             raise MetricsException(" / ".join(msgs))
